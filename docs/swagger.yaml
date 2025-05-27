@@ -1,0 +1,59 @@
+basePath: /
+definitions:
+  controller.errorResponse:
+    properties:
+      error_code:
+        type: integer
+      error_message:
+        type: string
+    type: object
+  controller.jsonResponse:
+    properties:
+      code:
+        type: integer
+      data: {}
+      error:
+        $ref: '#/definitions/controller.errorResponse'
+      message:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Result Service.
+  title: Result Service
+  version: 1.0.0
+paths:
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Ping to check health
+      parameters:
+      - description: user that make request
+        in: header
+        name: X-User-Id
+        type: string
+      - default: web
+        description: channel where request comes from
+        in: header
+        name: X-Channel-Id
+        type: string
+      - description: request unique identifier
+        in: header
+        name: X-Request-Id
+        type: string
+      - description: user account
+        in: header
+        name: X-Account-Id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/controller.jsonResponse'
+      summary: Ping
+      tags:
+      - Health
+swagger: "2.0"

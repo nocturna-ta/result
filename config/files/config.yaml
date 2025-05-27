@@ -1,0 +1,80 @@
+Server:
+  Port: 8903
+  ReadTimeout: 15s
+  WriteTimeout: 15s
+
+API:
+  BasePath: ""
+  APITimeout: 15s
+  EnableSwagger: true
+
+Database:
+  SlaveDSN: "postgres://postgres:1235813@localhost:5433/vote?sslmode=disable"
+  MasterDSN: "postgres://postgres:1235813@localhost:5433/vote?sslmode=disable"
+  RetryInterval: 10
+  MaxIdleConn: 10
+  MaxConn: 10
+  ConnMaxLifetime: 10s
+
+Kafka:
+  Producer:
+    Brokers:
+      - localhost:9092
+    MaxAttempt: 5
+    Idempotent: true
+  Consumer:
+    Brokers:
+      - localhost:9092
+    ClusterVersion : "3.2.0"
+    ConsumerGroup: "vote-service"
+    MaxRetries: 3
+    WorkerPoolSize: 5
+    Retry:
+      HandlerTimeout: 20s
+      MaxRetry: 3
+      RetryInitialDelay: 100ms
+      MaxJitter: 500ms
+      BackOffConfig:
+        - 1m
+        - 5m
+        - 10m
+  Topics:
+    VoteSubmitData:
+      Value: "votes.submit"
+      ErrorHandler: "Phase1"
+      WithBackOff: true
+    VoteProcessed:
+      Value: "votes.processed"
+      ErrorHandler: "Phase1"
+      WithBackOff: false
+    VoteDLQ:
+      Value: "votes.dlq"
+      ErrorHandler: "Phase1"
+      WithBackOff: false
+
+
+JWT:
+  Secret: "^87adb2&91hnGaWd7"
+
+GrpcServer:
+  Port: 35000
+
+Encryption:
+  Key : "NZkrqmVGg6Bi4QbqGXbH9wz3Q0+NCGvMKA2j8hqD5eM="
+
+BlockchainConfig:
+  GanacheURL: "http://127.0.0.1:7545"
+  VotechainAddress: "0xd39E794BCde9ddcE14f9Cd6E4eE4d319FeD1A5Ea"
+  ElectionManagerAddress: "0xFd94482F95f5541C712F39DC95E96628D3e147D6"
+  KPUManagerAddress: "0x15D340a739958950Aa8D9Ccb1BA2609f21B537a1"
+  VoterManagerAddress: "0x8c43Cea2fE39635De63893e45A072B8fD73a1be7"
+  VotechainBaseAddress: "0xB1aDFD125A736f17Fc8914c993698934BA834B13"
+
+
+Cors:
+  AllowOrigins: "*"
+  AllowMethods: "GET,POST,PUT,DELETE,OPTIONS"
+  AllowHeaders: "Content-Type,Authorization, X-User-Id, X-Role, X-Address, Ngrok-Skip-Browser-Warning"
+  AllowCredentials: false
+  ExposeHeaders: "X-Custom-Header"
+  MaxAge: 3600g

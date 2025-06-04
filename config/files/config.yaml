@@ -1,5 +1,5 @@
 Server:
-  Port: 8903
+  Port: 8904
   ReadTimeout: 15s
   WriteTimeout: 15s
 
@@ -8,25 +8,30 @@ API:
   APITimeout: 15s
   EnableSwagger: true
 
-Database:
-  SlaveDSN: "postgres://postgres:1235813@localhost:5433/vote?sslmode=disable"
-  MasterDSN: "postgres://postgres:1235813@localhost:5433/vote?sslmode=disable"
-  RetryInterval: 10
-  MaxIdleConn: 10
-  MaxConn: 10
-  ConnMaxLifetime: 10s
+ClickHouse:
+  Addrs:
+    - localhost:18123
+  Auth:
+    Database: "result"
+    Username: "default"
+    Password: "changeme"
+  DialTimeout: 10s
+  MaxOpenConns: 10
+  MaxIdleConns: 5
+  ConnMaxLifetime: 1h
+  Debug: true
+  AsyncInsert: false
+  TLS:
+    Enable: false
+    InsecureSkipVerify: false
+
 
 Kafka:
-  Producer:
-    Brokers:
-      - localhost:9092
-    MaxAttempt: 5
-    Idempotent: true
   Consumer:
     Brokers:
       - localhost:9092
-    ClusterVersion : "3.2.0"
-    ConsumerGroup: "vote-service"
+    ClusterVersion: "3.2.0"
+    ConsumerGroup: "result-service"
     MaxRetries: 3
     WorkerPoolSize: 5
     Retry:
@@ -52,24 +57,8 @@ Kafka:
       ErrorHandler: "Phase1"
       WithBackOff: false
 
-
-JWT:
-  Secret: "^87adb2&91hnGaWd7"
-
 GrpcServer:
-  Port: 35000
-
-Encryption:
-  Key : "NZkrqmVGg6Bi4QbqGXbH9wz3Q0+NCGvMKA2j8hqD5eM="
-
-BlockchainConfig:
-  GanacheURL: "http://127.0.0.1:7545"
-  VotechainAddress: "0xd39E794BCde9ddcE14f9Cd6E4eE4d319FeD1A5Ea"
-  ElectionManagerAddress: "0xFd94482F95f5541C712F39DC95E96628D3e147D6"
-  KPUManagerAddress: "0x15D340a739958950Aa8D9Ccb1BA2609f21B537a1"
-  VoterManagerAddress: "0x8c43Cea2fE39635De63893e45A072B8fD73a1be7"
-  VotechainBaseAddress: "0xB1aDFD125A736f17Fc8914c993698934BA834B13"
-
+  Port: 35001
 
 Cors:
   AllowOrigins: "*"
@@ -77,4 +66,4 @@ Cors:
   AllowHeaders: "Content-Type,Authorization, X-User-Id, X-Role, X-Address, Ngrok-Skip-Browser-Warning"
   AllowCredentials: false
   ExposeHeaders: "X-Custom-Header"
-  MaxAge: 3600g
+  MaxAge: 3600

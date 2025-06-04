@@ -37,7 +37,7 @@ func (v *VoteResultRepository) InsertVoteResult(ctx context.Context, result *mod
 	span, ctx := tracing.StartSpanFromContext(ctx, "VoteResultRepository.InsertVoteResult")
 	defer span.End()
 
-	err := v.db.Exec(ctx, insertVoteResultQuery, result.ID, result.VoteID, result.VoterID, result.ElectionPairID,
+	err := v.db.Exec(ctx, insertVoteResultQuery, result.ID.String(), result.VoteID.String(), result.VoterID, result.ElectionPairID.String(),
 		result.Region, result.Status, result.TransactionHash, result.ErrorMessage,
 		result.VotedAt, result.ProcessedAt, result.CreatedAt, result.UpdatedAt)
 

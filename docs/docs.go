@@ -93,6 +93,34 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "request.VoteResultEntry": {
+            "type": "object",
+            "properties": {
+                "election_pair_id": {
+                    "type": "string"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "transaction_hash": {
+                    "type": "string"
+                },
+                "vote_id": {
+                    "type": "string"
+                },
+                "voter_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.EntryResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                }
+            }
         }
     }
 }`

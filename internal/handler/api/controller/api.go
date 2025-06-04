@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/swagger"
 	"github.com/nocturna-ta/golib/router"
 	_ "github.com/nocturna-ta/result/docs"
+	"github.com/nocturna-ta/result/internal/usecases"
 	"github.com/nocturna-ta/result/pkg/utils"
 	"html/template"
 	"time"
@@ -16,6 +17,7 @@ type API struct {
 	writeTimeout   time.Duration
 	requestTimeout time.Duration
 	enableSwagger  bool
+	voteResult     usecases.VoteResultUseCases
 }
 
 type Options struct {
@@ -25,6 +27,7 @@ type Options struct {
 	WriteTimeout   time.Duration
 	RequestTimeout time.Duration
 	EnableSwagger  bool
+	VoteResult     usecases.VoteResultUseCases
 }
 
 func New(opts *Options) *API {
@@ -35,6 +38,7 @@ func New(opts *Options) *API {
 		writeTimeout:   opts.WriteTimeout,
 		requestTimeout: opts.RequestTimeout,
 		enableSwagger:  opts.EnableSwagger,
+		voteResult:     opts.VoteResult,
 	}
 }
 
@@ -59,6 +63,7 @@ func (api *API) RegisterRoute() *router.FastRouter {
 	}
 
 	myRouter.GET("/health", api.Ping, router.MustAuthorized(false))
+	myRouter.POST("/vote-result", api.InsertVoteResult, router.MustAuthorized(false))
 
 	return myRouter
 }

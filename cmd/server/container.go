@@ -1,7 +1,8 @@
 package server
 
 import (
-	"github.com/nocturna-ta/golib/database/nosql/clickhouse"
+	_ "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/nocturna-ta/golib/database/sql"
 	"github.com/nocturna-ta/golib/ethereum"
 	"github.com/nocturna-ta/golib/event"
 	"github.com/nocturna-ta/result/config"
@@ -17,7 +18,7 @@ type container struct {
 
 type options struct {
 	Cfg       *config.MainConfig
-	DB        clickhouse.Client
+	DB        *sql.Store
 	Client    ethereum.Client
 	Publisher event.MessagePublisher
 }

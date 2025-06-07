@@ -7,4 +7,5 @@ import (
 
 type Consumer interface {
 	ConsumeVoteProcessed(ctx context.Context, message *event.EventConsumeMessage) error
+	ConsumeVoteSubmit(ctx context.Context, message *event.EventConsumeMessage) error
 }

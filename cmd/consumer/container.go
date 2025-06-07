@@ -1,7 +1,7 @@
 package consumer
 
 import (
-	"github.com/nocturna-ta/golib/database/nosql/clickhouse"
+	"github.com/nocturna-ta/golib/database/sql"
 	"github.com/nocturna-ta/golib/event/handler"
 	"github.com/nocturna-ta/result/config"
 	"github.com/nocturna-ta/result/internal/interfaces/dao"
@@ -17,7 +17,7 @@ type container struct {
 
 type options struct {
 	Cfg *config.MainConfig
-	DB  clickhouse.Client
+	DB  *sql.Store
 }
 
 func newContainer(opts *options) *container {

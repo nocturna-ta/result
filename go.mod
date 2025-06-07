@@ -9,7 +9,7 @@ require (
 	github.com/gofiber/swagger v1.1.1
 	github.com/google/uuid v1.6.0
 	github.com/nocturna-ta/common-model v1.7.2
-	github.com/nocturna-ta/golib v1.2.3
+	github.com/nocturna-ta/golib v1.3.0
 	github.com/spf13/cobra v1.8.1
 	github.com/swaggo/swag v1.16.4
 )

@@ -10,7 +10,7 @@ type (
 	MainConfig struct {
 		Server     ServerConfig     `yaml:"Server"`
 		API        APIConfig        `yaml:"API"`
-		ClickHouse ClickHouseConfig `yaml:"ClickHouse"`
+		Database   DBConfig         `yaml:"Database"`
 		Kafka      KafkaConfig      `yaml:"Kafka"`
 		Cors       CorsConfig       `yaml:"Cors"`
 		GrpcServer GrpcServerConfig `yaml:"GrpcServer"`
@@ -28,39 +28,13 @@ type (
 		EnableSwagger bool          `yaml:"EnableSwagger" env:"ENABLE_SWAGGER" default:"false"`
 	}
 
-	ClickHouseConfig struct {
-		Addrs              []string           `yaml:"Addrs"`
-		Auth               Auth               `yaml:"Auth" `
-		Database           string             `yaml:"Database" `
-		DialTimeout        time.Duration      `yaml:"DialTimeout" `
-		MaxOpenConns       int                `yaml:"MaxOpenConns" `
-		MaxIdleConns       int                `yaml:"MaxIdleConns" `
-		ConnMaxLifetime    time.Duration      `yaml:"ConnMaxLifetime" `
-		TLS                *TLSConfig         `yaml:"TLS"`
-		BlockBufferSize    uint8              `yaml:"BlockBufferSize"`
-		MaxCompressionSize uint64             `yaml:"MaxCompressionSize"`
-		AsyncInsert        bool               `yaml:"AsyncInsert"`
-		AsyncInsertOptions AsyncInsertOptions `yaml:"AsyncInsertOptions"`
-		Debug              bool               `yaml:"Debug"`
-	}
-
-	Auth struct {
-		Database string `yaml:"Database"`
-		Username string `yaml:"Username"`
-		Password string `yaml:"Password"`
-	}
-
-	TLSConfig struct {
-		Enable             bool   `yaml:"Enable"`
-		InsecureSkipVerify bool   `yaml:"InsecureSkipVerify"`
-		CertFile           string `yaml:"CertFile"`
-		KeyFile            string `yaml:"KeyFile"`
-		CAFile             string `yaml:"CAFile"`
-	}
-
-	AsyncInsertOptions struct {
-		MaxBatchSize int           `yaml:"MaxBatchSize"`
-		MaxDelay     time.Duration `yaml:"MaxDelay"`
+	DBConfig struct {
+		SlaveDSN        string `yaml:"SlaveDSN" env:"DB_SLAVE_DSN"`
+		MasterDSN       string `yaml:"MasterDSN" env:"DB_MASTER_DSN"`
+		RetryInterval   int    `yaml:"RetryInterval" env:"DB_RETRY_INTERVAL"`
+		MaxIdleConn     int    `yaml:"MaxIdleConn" env:"DB_MAX_IDLE_CONN"`
+		MaxConn         int    `yaml:"MaxConn" env:"DB_MAX_CONN"`
+		ConnMaxLifetime string `yaml:"ConnMaxLifetime" env:"DB_CONN_MAX_LIFETIME"`
 	}
 	CorsConfig struct {
 		AllowOrigins     string `yaml:"AllowOrigins"`

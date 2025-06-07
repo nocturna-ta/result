@@ -1,6 +1,9 @@
 package main
 
-import "github.com/nocturna-ta/result/cmd"
+import (
+	_ "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/nocturna-ta/result/cmd"
+)
 
 // @title Result Service
 // @version 1.0.0

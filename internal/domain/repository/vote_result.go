@@ -9,7 +9,6 @@ import (
 type VoteResultRepository interface {
 	// Insert operations
 	InsertVoteResult(ctx context.Context, result *model.VoteResult) error
-	InsertVoteResultBatch(ctx context.Context, results []*model.VoteResult) error
 	UpdateVoteResult(ctx context.Context, result *model.VoteResult) error
 
 	// Read operations
@@ -17,7 +16,6 @@ type VoteResultRepository interface {
 	GetVoteResultsByElectionPair(ctx context.Context, electionPairID string, limit, offset int) ([]*model.VoteResult, error)
 	GetVoteResultsByRegion(ctx context.Context, region string, limit, offset int) ([]*model.VoteResult, error)
 	GetVoteResultsByStatus(ctx context.Context, status string, limit, offset int) ([]*model.VoteResult, error)
-	GetVoteResultsByVoter(ctx context.Context, voterID string, limit, offset int) ([]*model.VoteResult, error)
 
 	// Statistics operations
 	GetElectionResults(ctx context.Context, electionPairID string) (*model.ElectionResult, error)

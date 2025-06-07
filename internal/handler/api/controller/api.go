@@ -63,7 +63,26 @@ func (api *API) RegisterRoute() *router.FastRouter {
 	}
 
 	myRouter.GET("/health", api.Ping, router.MustAuthorized(false))
-	myRouter.POST("/vote-result", api.InsertVoteResult, router.MustAuthorized(false))
+	myRouter.Group("/v1", func(v1 *router.FastRouter) {
+		v1.Group("/results", func(results *router.FastRouter) {
+			results.GET("/votes/:id", api.GetVoteResult, router.MustAuthorized(false))
+			results.GET("/votes", api.GetVoteResultByStatus, router.MustAuthorized(false))
+			results.GET("/votes/count", api.CountVotesByStatus, router.MustAuthorized(false))
+
+			results.GET("/elections/:election_pair_id", api.GetElectionResults, router.MustAuthorized(false))
+			results.GET("/elections/:election_pair_id/votes", api.GetVoteResultByElectionPair, router.MustAuthorized(false))
+			results.GET("/elections/:election_pair_id/count", api.CountVotesByElectionPair, router.MustAuthorized(false))
+
+			results.GET("/regions", api.GetRegionStatistics, router.MustAuthorized(false))
+			results.GET("/regions/:region", api.GetRegionResults, router.MustAuthorized(false))
+			results.GET("/regions/:region/votes", api.GetVoteResultByRegion, router.MustAuthorized(false))
+			results.GET("/regions/:region/elections", api.GetElectionResultsByRegion, router.MustAuthorized(false))
+			results.GET("/regions/:region/count", api.CountVotesByRegion, router.MustAuthorized(false))
+
+			results.GET("/statistics", api.GetOverallStatistics, router.MustAuthorized(false))
+			results.GET("/statistics/daily", api.GetDailyStatistics, router.MustAuthorized(false))
+		})
+	})
 
 	return myRouter
 }

@@ -24,8 +24,10 @@ func ServeConsumerCmd() *cobra.Command {
 }
 
 func run(cmd *cobra.Command, args []string) error {
-	configLocation, _ := cmd.Flags().GetString("config")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
+	configLocation, _ := cmd.Flags().GetString("config")
 	cfg := &config.MainConfig{}
 	config.ReadConfig(cfg, configLocation)
 
@@ -41,6 +43,7 @@ func run(cmd *cobra.Command, args []string) error {
 	appContainer := newContainer(&options{
 		Cfg: cfg,
 		DB:  database,
+		Ctx: ctx,
 	})
 
 	consumer, err := kafka.NewConsumer(context.Background(), cfg.Kafka.Consumer, &appContainer.EventHandler)

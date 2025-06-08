@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/swagger"
 	"github.com/nocturna-ta/golib/router"
 	_ "github.com/nocturna-ta/result/docs"
+	"github.com/nocturna-ta/result/internal/infrastructures/websocket"
 	"github.com/nocturna-ta/result/internal/usecases"
 	"github.com/nocturna-ta/result/pkg/utils"
 	"html/template"
@@ -18,6 +19,8 @@ type API struct {
 	requestTimeout time.Duration
 	enableSwagger  bool
 	voteResult     usecases.VoteResultUseCases
+	liveResult     usecases.LiveResultUsecases
+	wsController   *WebSocketController
 }
 
 type Options struct {
@@ -28,9 +31,19 @@ type Options struct {
 	RequestTimeout time.Duration
 	EnableSwagger  bool
 	VoteResult     usecases.VoteResultUseCases
+	LiveResult     usecases.LiveResultUsecases
+	WebSocketHub   *websocket.Hub
 }
 
 func New(opts *Options) *API {
+
+	wsHandler := websocket.NewHandler(opts.WebSocketHub)
+
+	wsController := NewWebSocketController(&WebSocketControllerOptions{
+		Handler:           wsHandler,
+		LiveResultService: opts.LiveResult,
+	})
+
 	return &API{
 		prefix:         opts.Prefix,
 		port:           opts.Port,
@@ -39,6 +52,8 @@ func New(opts *Options) *API {
 		requestTimeout: opts.RequestTimeout,
 		enableSwagger:  opts.EnableSwagger,
 		voteResult:     opts.VoteResult,
+		liveResult:     opts.LiveResult,
+		wsController:   wsController,
 	}
 }
 
@@ -81,6 +96,16 @@ func (api *API) RegisterRoute() *router.FastRouter {
 
 			results.GET("/statistics", api.GetOverallStatistics, router.MustAuthorized(false))
 			results.GET("/statistics/daily", api.GetDailyStatistics, router.MustAuthorized(false))
+		})
+
+		v1.Group("/live", func(live *router.FastRouter) {
+			// REST endpoints for live results management
+			live.GET("/status", api.wsController.GetLiveResultsStatus, router.MustAuthorized(false))
+			live.POST("/broadcast", api.wsController.TriggerBroadcast, router.MustAuthorized(false))
+
+			// WebSocket endpoint - requires special handling
+			live.Use("/ws", api.wsController.WebSocketMiddleware())
+			live.CustomHandler("GET", "/ws", api.wsController.HandleWebSocket, router.MustAuthorized(false))
 		})
 	})
 

@@ -466,7 +466,7 @@ func (m *Module) GetRegionResults(ctx context.Context, region string) (*response
 		ConfirmedVotes: result.ConfirmedVotes,
 		PendingVotes:   result.PendingVotes,
 		ErrorVotes:     result.ErrorVotes,
-		LastUpdated:    result.LastUpdated.Format(time.RFC3339),
+		LastUpdated:    result.LastUpdated,
 	}, nil
 }
 
@@ -498,7 +498,7 @@ func (m *Module) GetRegionStatistics(ctx context.Context) ([]*response.RegionVot
 			ConfirmedVotes: result.ConfirmedVotes,
 			PendingVotes:   result.PendingVotes,
 			ErrorVotes:     result.ErrorVotes,
-			LastUpdated:    result.LastUpdated.Format(time.RFC3339),
+			LastUpdated:    result.LastUpdated,
 		})
 	}
 
@@ -539,7 +539,7 @@ func (m *Module) GetOverallStatistics(ctx context.Context) (*response.VoteStatis
 		PendingVotes:   stats.PendingVotes,
 		ErrorVotes:     stats.ErrorVotes,
 		SuccessRate:    stats.SuccessRate,
-		LastUpdated:    stats.LastUpdated.Format(time.RFC3339),
+		LastUpdated:    stats.LastUpdated,
 	}, nil
 }
 
@@ -589,7 +589,7 @@ func (m *Module) GetDailyStatistics(ctx context.Context, startDate, endDate time
 			PendingVotes:   stat.PendingVotes,
 			ErrorVotes:     stat.ErrorVotes,
 			SuccessRate:    stat.SuccessRate,
-			LastUpdated:    stat.LastUpdated.Format(time.RFC3339),
+			LastUpdated:    stat.LastUpdated,
 		})
 	}
 

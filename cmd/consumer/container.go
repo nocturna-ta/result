@@ -1,23 +1,28 @@
 package consumer
 
 import (
+	"context"
 	"github.com/nocturna-ta/golib/database/sql"
 	"github.com/nocturna-ta/golib/event/handler"
 	"github.com/nocturna-ta/result/config"
+	"github.com/nocturna-ta/result/internal/infrastructures/websocket"
 	"github.com/nocturna-ta/result/internal/interfaces/dao"
 	"github.com/nocturna-ta/result/internal/usecases"
 	"github.com/nocturna-ta/result/internal/usecases/consumer"
+	"github.com/nocturna-ta/result/internal/usecases/live_result"
 )
 
 type container struct {
 	Cfg          config.MainConfig
 	ConsumerUc   usecases.Consumer
 	EventHandler handler.EventHandler
+	WebSocketHub *websocket.Hub
 }
 
 type options struct {
 	Cfg *config.MainConfig
 	DB  *sql.Store
+	Ctx context.Context
 }
 
 func newContainer(opts *options) *container {
@@ -25,8 +30,18 @@ func newContainer(opts *options) *container {
 		DB: opts.DB,
 	})
 
+	wsHub := websocket.NewHub(opts.Ctx)
+
+	liveResultUc := live_result.New(&live_result.Options{
+		VoteResultRepo: resultRepo,
+		Hub:            wsHub,
+	})
+
+	go wsHub.Run()
+
 	consumerUc := consumer.New(&consumer.Options{
 		ResultRepo: resultRepo,
+		LiveResult: liveResultUc,
 		Topics:     opts.Cfg.Kafka.Topics,
 	})
 
@@ -47,5 +62,6 @@ func newContainer(opts *options) *container {
 		Cfg:          *opts.Cfg,
 		ConsumerUc:   consumerUc,
 		EventHandler: eventHandler,
+		WebSocketHub: wsHub,
 	}
 }

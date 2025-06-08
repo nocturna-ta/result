@@ -5,12 +5,15 @@ import (
 	"github.com/nocturna-ta/golib/router"
 	"github.com/nocturna-ta/result/config"
 	"github.com/nocturna-ta/result/internal/handler/api/controller"
+	"github.com/nocturna-ta/result/internal/infrastructures/websocket"
 	"github.com/nocturna-ta/result/internal/usecases"
 )
 
 type Options struct {
-	Cfg        config.MainConfig
-	VoteResult usecases.VoteResultUseCases
+	Cfg          config.MainConfig
+	VoteResult   usecases.VoteResultUseCases
+	LiveResult   usecases.LiveResultUsecases
+	WebsocketHub *websocket.Hub
 }
 
 type Handler struct {
@@ -31,6 +34,8 @@ func New(opts *Options) *Handler {
 		RequestTimeout: opts.Cfg.API.APITimeout,
 		EnableSwagger:  opts.Cfg.API.EnableSwagger,
 		VoteResult:     opts.VoteResult,
+		LiveResult:     opts.LiveResult,
+		WebSocketHub:   opts.WebsocketHub,
 	}).RegisterRoute()
 	return handler
 }

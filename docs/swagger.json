@@ -58,6 +58,99 @@
                 }
             }
         },
+        "/v1/live/broadcast": {
+            "post": {
+                "description": "Manually trigger a broadcast of current results (for testing/admin purposes)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Live Results"
+                ],
+                "summary": "Trigger manual broadcast",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Election Pair ID to broadcast",
+                        "name": "election_pair_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Region to broadcast",
+                        "name": "region",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "all",
+                        "description": "Broadcast type: vote, election, region, statistics, all",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Broadcast triggered",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/live/status": {
+            "get": {
+                "description": "Get status information about the live results WebSocket service",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Live Results"
+                ],
+                "summary": "Get live results WebSocket status",
+                "responses": {
+                    "200": {
+                        "description": "WebSocket status",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/v1/results/elections/{election_pair_id}": {
             "get": {
                 "description": "Get detailed election results for a specific election pair",

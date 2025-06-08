@@ -44,11 +44,16 @@ func (m *Module) ConsumeVoteProcessed(ctx context.Context, message *event.EventC
 		}).DebugWithCtx(ctx, "[ConsumerUseCases.ConsumeVoteProcessed] Failed to get existing vote result")
 	}
 
+	var electionPairID, region string
+
 	if existingResult != nil {
 		existingResult.Status = voteMessage.Status
 		existingResult.TransactionHash = voteMessage.TransactionHash
 		existingResult.ErrorMessage = voteMessage.ErrorMessage
 		existingResult.ProcessedAt = &voteMessage.ProcessedAt
+
+		electionPairID = existingResult.ElectionPairID
+		region = existingResult.Region
 
 		err = m.resultRepo.UpdateVoteResult(ctx, existingResult)
 		if err != nil {
@@ -66,6 +71,8 @@ func (m *Module) ConsumeVoteProcessed(ctx context.Context, message *event.EventC
 		}).InfoWithCtx(ctx, "[ConsumerUseCases.ConsumeVoteProcessed] Updated existing vote result")
 	} else {
 		result := model.FromVoteProcessedMessage(&voteMessage)
+		electionPairID = result.ElectionPairID
+		region = result.Region
 
 		err = m.resultRepo.InsertVoteResult(ctx, result)
 		if err != nil {
@@ -83,6 +90,8 @@ func (m *Module) ConsumeVoteProcessed(ctx context.Context, message *event.EventC
 			"status":     voteMessage.Status,
 		}).InfoWithCtx(ctx, "[ConsumerUseCases.ConsumeVoteProcessed] Inserted new vote result")
 	}
+
+	m.broadcastLiveUpdates(ctx, voteMessage.VoteID, electionPairID, region)
 
 	return nil
 }
@@ -121,11 +130,13 @@ func (m *Module) ConsumeVoteSubmit(ctx context.Context, message *event.EventCons
 		operation = constants.Create
 	}
 
+	var electionPairID, region string
+
 	switch operation {
 	case constants.Create:
-		return m.handleVoteCreate(ctx, &voteMessage, requestId)
+		electionPairID, region = m.handleVoteCreate(ctx, &voteMessage, requestId)
 	case constants.Update:
-		return m.handleVoteUpdate(ctx, &voteMessage, requestId)
+		electionPairID, region = m.handleVoteUpdate(ctx, &voteMessage, requestId)
 	default:
 		log.WithFields(log.Fields{
 			"request_id": requestId,
@@ -135,16 +146,20 @@ func (m *Module) ConsumeVoteSubmit(ctx context.Context, message *event.EventCons
 		}).WarnWithCtx(ctx, "[ConsumerUseCases.ConsumerVoteSubmit] Unknown operation, skipping")
 		return nil
 	}
+
+	m.broadcastLiveUpdates(ctx, voteMessage.VoteID, electionPairID, region)
+
+	return nil
 }
 
-func (m *Module) handleVoteCreate(ctx context.Context, voteMessage *event2.VoteSubmitMessage, requestId string) error {
+func (m *Module) handleVoteCreate(ctx context.Context, voteMessage *event2.VoteSubmitMessage, requestId string) (string, string) {
 	existingResult, err := m.resultRepo.GetVoteResultByID(ctx, voteMessage.VoteID)
 	if err == nil && existingResult != nil {
 		log.WithFields(log.Fields{
 			"request_id": requestId,
 			"vote_id":    voteMessage.VoteID,
 		}).InfoWithCtx(ctx, "[ConsumerUseCases.ConsumerVoteSubmit] Vote already exists, skipping creation")
-		return nil
+		return existingResult.ElectionPairID, existingResult.Region
 	}
 
 	result := model.FromVoteSubmitMessage(voteMessage)
@@ -155,7 +170,7 @@ func (m *Module) handleVoteCreate(ctx context.Context, voteMessage *event2.VoteS
 			"error":      err,
 			"result":     result,
 		}).ErrorWithCtx(ctx, "[ConsumerUseCases.ConsumerVoteSubmit] Failed to insert new vote result")
-		return err
+		return "", ""
 	}
 
 	log.WithFields(log.Fields{
@@ -165,10 +180,10 @@ func (m *Module) handleVoteCreate(ctx context.Context, voteMessage *event2.VoteS
 		"region":           voteMessage.Region,
 	}).InfoWithCtx(ctx, "[ConsumerUseCases.ConsumerVoteSubmit] Inserted new vote result")
 
-	return nil
+	return voteMessage.ElectionPairID, voteMessage.Region
 }
 
-func (m *Module) handleVoteUpdate(ctx context.Context, voteMessage *event2.VoteSubmitMessage, requestId string) error {
+func (m *Module) handleVoteUpdate(ctx context.Context, voteMessage *event2.VoteSubmitMessage, requestId string) (string, string) {
 	existingResult, err := m.resultRepo.GetVoteResultByID(ctx, voteMessage.VoteID)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -176,14 +191,14 @@ func (m *Module) handleVoteUpdate(ctx context.Context, voteMessage *event2.VoteS
 			"error":      err,
 			"vote_id":    voteMessage.VoteID,
 		}).ErrorWithCtx(ctx, "[ConsumerUseCases.ConsumerVoteSubmit] Failed to get existing vote result")
-		return err
+		return "", ""
 	}
 	if existingResult == nil {
 		log.WithFields(log.Fields{
 			"request_id": requestId,
 			"vote_id":    voteMessage.VoteID,
 		}).WarnWithCtx(ctx, "[ConsumerUseCases.ConsumerVoteSubmit] Vote does not exist, skipping update")
-		return nil
+		return "", ""
 	}
 
 	existingResult.ElectionPairID = voteMessage.ElectionPairID
@@ -197,12 +212,33 @@ func (m *Module) handleVoteUpdate(ctx context.Context, voteMessage *event2.VoteS
 			"error":      err,
 			"result":     existingResult,
 		}).ErrorWithCtx(ctx, "[ConsumerUseCases.ConsumerVoteSubmit] Failed to update existing vote result")
-		return err
+		return "", ""
 	}
 	log.WithFields(log.Fields{
 		"request_id": requestId,
 		"vote_id":    voteMessage.VoteID,
 	}).InfoWithCtx(ctx, "[ConsumerUseCases.ConsumerVoteSubmit] Updated existing vote result")
 
-	return nil
+	return voteMessage.ElectionPairID, voteMessage.Region
+}
+
+func (m *Module) broadcastLiveUpdates(ctx context.Context, voteID, electionPairID, region string) {
+	if m.liveResult == nil || m.liveResult.GetConnectedClients(ctx) == 0 {
+		return
+	}
+
+	if err := m.liveResult.BroadcastVoteUpdate(ctx, voteID); err != nil {
+		log.WithFields(log.Fields{
+			"error":   err,
+			"vote_id": voteID,
+		}).ErrorWithCtx(ctx, "[ConsumerUseCases] Failed to broadcast vote update")
+	}
+
+	if err := m.liveResult.BroadcastAllUpdates(ctx, electionPairID, region); err != nil {
+		log.WithFields(log.Fields{
+			"error":            err,
+			"election_pair_id": electionPairID,
+			"region":           region,
+		}).ErrorWithCtx(ctx, "[ConsumerUseCases] Failed to broadcast aggregated updates")
+	}
 }

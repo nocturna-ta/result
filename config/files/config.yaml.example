@@ -1,5 +1,5 @@
 Server:
-  Port: 8903
+  Port: 8904
   ReadTimeout: 15s
   WriteTimeout: 15s
 
@@ -8,13 +8,23 @@ API:
   APITimeout: 15s
   EnableSwagger: true
 
-Database:
-  SlaveDSN: "clickhouse://default:changeme@localhost:19000/result"
-  MasterDSN: "clickhouse://default:changeme@localhost:19000/result"
-  RetryInterval: 10
-  MaxIdleConn: 10
-  MaxConn: 10
-  ConnMaxLifetime: 10s
+ClickHouse:
+  Addrs:
+    - localhost:18123
+  Auth:
+    Database: "result"
+    Username: "default"
+    Password: "changeme"
+  DialTimeout: 10s
+  MaxOpenConns: 10
+  MaxIdleConns: 5
+  ConnMaxLifetime: 1h
+  Debug: true
+  AsyncInsert: false
+  TLS:
+    Enable: false
+    InsecureSkipVerify: false
+
 
 Kafka:
   Consumer:

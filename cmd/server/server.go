@@ -2,12 +2,12 @@ package server
 
 import (
 	"context"
+	_ "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/nocturna-ta/golib/database/sql"
+
 	"github.com/nocturna-ta/golib/log"
 	"github.com/nocturna-ta/result/config"
 	"github.com/nocturna-ta/result/internal/handler/api"
-	"github.com/nocturna-ta/result/internal/infrastructures/ethereum"
-	"github.com/nocturna-ta/result/internal/infrastructures/kafka"
 	"github.com/spf13/cobra"
 	"os"
 	"os/signal"
@@ -29,6 +29,10 @@ func ServeHttpCmd() *cobra.Command {
 }
 
 func run(cmd *cobra.Command, args []string) error {
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	configLocation, _ := cmd.Flags().GetString("config")
 	cfg := &config.MainConfig{}
 	config.ReadConfig(cfg, configLocation)
@@ -40,42 +44,49 @@ func run(cmd *cobra.Command, args []string) error {
 		MaxIdleConn:     cfg.Database.MaxIdleConn,
 		MaxConn:         cfg.Database.MaxConn,
 		ConnMaxLifetime: cfg.Database.ConnMaxLifetime,
-	}, sql.DriverPostgres)
+	}, sql.DriverClickHouse)
 
-	client, err := ethereum.GetEthereumClient(&cfg.Blockchain)
-	if err != nil {
-		return err
-	}
-
-	defer client.Close()
-
-	publisher, err := kafka.NewPublisher(context.Background(), cfg.Kafka.Producer)
-	if err != nil {
-		log.Fatalf("Failed to instantiate kafka publisher: %w", err)
-		return err
-	}
+	//client, err := ethereum.GetEthereumClient(&cfg.Blockchain)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//defer client.Close()
 
 	appContainer := newContainer(&options{
-		Cfg:       cfg,
-		Client:    client,
-		DB:        database,
-		Publisher: publisher,
+		Cfg: cfg,
+		DB:  database,
+		Ctx: ctx,
+		//Client:    client,
 	})
 
 	server := api.New(&api.Options{
-		Cfg: appContainer.Cfg,
+		Cfg:          appContainer.Cfg,
+		VoteResult:   appContainer.VoteResultUc,
+		LiveResult:   appContainer.LiveResultUc,
+		WebsocketHub: appContainer.WebSocketHub,
 	})
 
 	go server.Run()
+
+	log.WithFields(log.Fields{
+		"port":         cfg.Server.Port,
+		"websocket":    true,
+		"live_results": true,
+	}).Info("Result Service started with WebSocket support")
 
 	term := make(chan os.Signal)
 	signal.Notify(term, os.Interrupt, syscall.SIGTERM)
 	select {
 	case <-term:
 		log.Info("Exiting gracefully...")
+		cancel()
 	case err := <-server.ListenError():
 		log.Error("Error starting web server, exiting gracefully:", err)
+		cancel()
 	}
+
+	appContainer.WebSocketHub.Stop()
 
 	return nil
 }

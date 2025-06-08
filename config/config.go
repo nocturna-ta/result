@@ -11,10 +11,7 @@ type (
 		Server     ServerConfig     `yaml:"Server"`
 		API        APIConfig        `yaml:"API"`
 		Database   DBConfig         `yaml:"Database"`
-		Blockchain BlockchainConfig `yaml:"BlockchainConfig"`
-		JWT        JWTConfig        `yaml:"JWT"`
 		Kafka      KafkaConfig      `yaml:"Kafka"`
-		Encryption EncryptionConfig `yaml:"Encryption"`
 		Cors       CorsConfig       `yaml:"Cors"`
 		GrpcServer GrpcServerConfig `yaml:"GrpcServer"`
 	}
@@ -39,24 +36,6 @@ type (
 		MaxConn         int    `yaml:"MaxConn" env:"DB_MAX_CONN"`
 		ConnMaxLifetime string `yaml:"ConnMaxLifetime" env:"DB_CONN_MAX_LIFETIME"`
 	}
-
-	BlockchainConfig struct {
-		GanacheURL             string `yaml:"GanacheURL"`
-		VotechainAddress       string `yaml:"VotechainAddress" `
-		VotechainBaseAddress   string `yaml:"VotechainBaseAddress"`
-		KPUManagerAddress      string `yaml:"KPUManagerAddress"`
-		VoterManagerAddress    string `yaml:"VoterManagerAddress"`
-		ElectionManagerAddress string `yaml:"ElectionManagerAddress"`
-	}
-
-	JWTConfig struct {
-		Secret string `yaml:"Secret" env:"JWT_SECRET"`
-	}
-
-	EncryptionConfig struct {
-		Key string `yaml:"Key" env:"ENCRYPTION_KEY"`
-	}
-
 	CorsConfig struct {
 		AllowOrigins     string `yaml:"AllowOrigins"`
 		AllowMethods     string `yaml:"AllowMethods"`
@@ -71,15 +50,8 @@ type (
 	}
 
 	KafkaConfig struct {
-		Producer KafkaProducerConfig `yaml:"Producer"`
 		Consumer KafkaConsumerConfig `yaml:"Consumer"`
 		Topics   KafkaTopics         `yaml:"Topics"`
-	}
-
-	KafkaProducerConfig struct {
-		Brokers    []string `yaml:"Brokers" env:"KAFKA_BROKERS"`
-		Idempotent bool     `yaml:"Idempotent" env:"KAFKA_IDEMPOTENT"`
-		MaxAttempt int      `yaml:"MaxAttempt" env:"KAFKA_MAX_ATTEMPTS"`
 	}
 
 	KafkaConsumerConfig struct {

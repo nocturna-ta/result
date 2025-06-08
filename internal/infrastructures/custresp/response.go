@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/nocturna-ta/golib/custerr"
 	"github.com/nocturna-ta/golib/response/rest"
+	"github.com/nocturna-ta/result/internal/interfaces/dao"
 	"github.com/nocturna-ta/result/pkg/constants"
 	"github.com/nocturna-ta/result/pkg/constants/errorcode"
 	"net/http"

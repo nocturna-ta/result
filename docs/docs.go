@@ -159,6 +159,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/results/elections": {
+            "get": {
+                "description": "Get all election results across all regions and pairs",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Results"
+                ],
+                "summary": "Get all election results",
+                "responses": {
+                    "200": {
+                        "description": "List of all election results",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/response.ElectionVoteResultResponse"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/v1/results/elections/{election_pair_id}": {
             "get": {
                 "description": "Get detailed election results for a specific election pair",

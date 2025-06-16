@@ -15,6 +15,7 @@ type VoteResultUseCases interface {
 	GetVoteResultsByDateRange(ctx context.Context, startDate, endDate time.Time, limit, offset int) ([]*response.VoteResultResponse, error)
 
 	// Election Results
+	GetAllElectionResult(ctx context.Context) ([]*response.ElectionVoteResultResponse, error)
 	GetElectionResults(ctx context.Context, electionPairID string) (*response.ElectionVoteResultResponse, error)
 	GetElectionResultsByRegion(ctx context.Context, region string) ([]*response.ElectionVoteResultResponse, error)
 

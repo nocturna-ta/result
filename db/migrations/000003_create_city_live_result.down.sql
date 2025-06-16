@@ -1,0 +1,1 @@
+DROP VIEW IF EXISTS city_live_results_mv;

@@ -1,0 +1,1 @@
+DROP VIEW IF EXISTS election_total_mv;

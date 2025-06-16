@@ -185,6 +185,28 @@ paths:
       summary: Get live results WebSocket status
       tags:
       - Live Results
+  /v1/results/elections:
+    get:
+      consumes:
+      - application/json
+      description: Get all election results across all regions and pairs
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of all election results
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.jsonResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/response.ElectionVoteResultResponse'
+                  type: array
+              type: object
+      summary: Get all election results
+      tags:
+      - Results
   /v1/results/elections/{election_pair_id}:
     get:
       consumes:

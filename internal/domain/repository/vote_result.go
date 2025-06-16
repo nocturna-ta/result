@@ -21,6 +21,7 @@ type VoteResultRepository interface {
 	GetElectionResults(ctx context.Context, electionPairID string) (*model.ElectionResult, error)
 	GetRegionResults(ctx context.Context, region string) (*model.RegionResult, error)
 	GetOverallStatistics(ctx context.Context) (*model.VoteStatistics, error)
+	GetAllElectionResult(ctx context.Context) ([]*model.ElectionResult, error)
 
 	// Advanced queries
 	GetVoteResultsByDateRange(ctx context.Context, startDate, endDate time.Time, limit, offset int) ([]*model.VoteResult, error)

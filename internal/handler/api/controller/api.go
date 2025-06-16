@@ -84,6 +84,7 @@ func (api *API) RegisterRoute() *router.FastRouter {
 			results.GET("/votes", api.GetVoteResultByStatus, router.MustAuthorized(false))
 			results.GET("/votes/count", api.CountVotesByStatus, router.MustAuthorized(false))
 
+			results.GET("/elections", api.GetAllElectionResults, router.MustAuthorized(false))
 			results.GET("/elections/:election_pair_id", api.GetElectionResults, router.MustAuthorized(false))
 			results.GET("/elections/:election_pair_id/votes", api.GetVoteResultByElectionPair, router.MustAuthorized(false))
 			results.GET("/elections/:election_pair_id/count", api.CountVotesByElectionPair, router.MustAuthorized(false))

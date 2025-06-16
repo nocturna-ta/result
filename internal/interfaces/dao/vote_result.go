@@ -243,6 +243,36 @@ func (v *VoteResultRepository) GetVoteResultsByStatus(ctx context.Context, statu
 	return results, nil
 }
 
+func (v *VoteResultRepository) GetAllElectionResult(ctx context.Context) ([]*model.ElectionResult, error) {
+	span, ctx := tracing.StartSpanFromContext(ctx, "VoteResultRepository.GetAllElectionResult")
+	defer span.End()
+
+	var (
+		result []*model.ElectionResult
+		err    error
+		args   []any
+	)
+
+	sqlTrx := utils.GetSqlTx(ctx)
+	selectQuery := `election_pair_id, count(*) as total_votes, countIf(status = 'confirmed') as confirmed_votes, countIf(status = 'pending') as pending_votes, countIf(status = 'error') as error_votes, max(updated_at) as last_updated`
+	whereQuery := `GROUP BY election_pair_id`
+
+	query := fmt.Sprintf(selectVoteResultQuery, selectQuery, "", whereQuery)
+	if sqlTrx != nil {
+		err = sqlTrx.SelectContext(ctx, &result, query, args...)
+	} else {
+		err = v.db.GetMaster().SelectContext(ctx, &result, query, args...)
+	}
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).ErrorWithCtx(ctx, "[VoteResultRepository.GetAllElectionResult] failed to get all election results")
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func (v *VoteResultRepository) GetElectionResults(ctx context.Context, electionPairID string) (*model.ElectionResult, error) {
 	span, ctx := tracing.StartSpanFromContext(ctx, "VoteResultRepository.GetElectionResults")
 	defer span.End()

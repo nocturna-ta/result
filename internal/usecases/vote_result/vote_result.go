@@ -811,3 +811,38 @@ func (m *Module) GetVoteResultsByDay(ctx context.Context, date time.Time) ([]*re
 	}
 	return responses, nil
 }
+
+func (m *Module) GetAllElectionResult(ctx context.Context) ([]*response.ElectionVoteResultResponse, error) {
+	span, ctx := tracing.StartSpanFromContext(ctx, "ResultUseCases.GetAllElectionResult")
+	defer span.End()
+
+	result, err := m.voteResultRepo.GetAllElectionResult(ctx)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).ErrorWithCtx(ctx, "[ResultUseCases.GetElectionResults] Failed to get election results")
+
+		if errors.Is(err, dao.ErrNoResult) {
+			return nil, &custerr.ErrChain{
+				Message: "election results not found for the given election pair",
+				Code:    404,
+				Type:    response2.ErrNotFound,
+			}
+		}
+		return nil, err
+	}
+
+	var responses []*response.ElectionVoteResultResponse
+	for _, res := range result {
+		responses = append(responses, &response.ElectionVoteResultResponse{
+			ElectionPairID: res.ElectionPairID,
+			TotalVotes:     res.TotalVotes,
+			ConfirmedVotes: res.ConfirmedVotes,
+			PendingVotes:   res.PendingVotes,
+			ErrorVotes:     res.ErrorVotes,
+			LastUpdated:    res.LastUpdated,
+		})
+	}
+
+	return responses, nil
+}

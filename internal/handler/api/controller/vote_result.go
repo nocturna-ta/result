@@ -365,3 +365,23 @@ func (api *API) CountVotesByRegion(ctx context.Context, req *router.Request) (*r
 		"region": region,
 	}), nil
 }
+
+// GetAllElectionResults godoc
+// @Summary Get all election results
+// @Description Get all election results across all regions and pairs
+// @Tags Results
+// @Accept json
+// @Produce json
+// @Success 200 {object} jsonResponse{data=[]response.ElectionVoteResultResponse} "List of all election results"
+// @Router /v1/results/elections [get]
+func (api *API) GetAllElectionResults(ctx context.Context, req *router.Request) (*rest.JSONResponse, error) {
+	span, ctx := tracing.StartSpanFromContext(ctx, "ResultController.GetAllElectionResults")
+	defer span.End()
+
+	results, err := api.voteResult.GetAllElectionResult(ctx)
+	if err != nil {
+		return custresp.CustomErrorResponse(err)
+	}
+
+	return rest.NewJSONResponse().SetData(results), nil
+}

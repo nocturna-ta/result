@@ -74,7 +74,7 @@ func (api *API) RegisterRoute() *router.FastRouter {
 			CustomStyle:  template.CSS(utils.ClaudeDarkTheme),
 		}
 
-		myRouter.CustomHandler("GET", "/docs/*", swagger.New(swaggerConfig), router.MustAuthorized(false))
+		myRouter.CustomHandler("GET", "/result/docs/*", swagger.New(swaggerConfig), router.MustAuthorized(false))
 	}
 
 	myRouter.GET("/health", api.Ping, router.MustAuthorized(false))

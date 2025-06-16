@@ -1,0 +1,62 @@
+Server:
+  Port: 8904
+  ReadTimeout: 15s
+  WriteTimeout: 15s
+
+API:
+  BasePath: ""
+  APITimeout: 15s
+  EnableSwagger: true
+
+ClickHouse:
+  Addrs:
+    - localhost:18123
+  Auth:
+    Database: "result"
+    Username: "default"
+    Password: "changeme"
+  DialTimeout: 10s
+  MaxOpenConns: 10
+  MaxIdleConns: 5
+  ConnMaxLifetime: 1h
+  Debug: true
+  AsyncInsert: false
+  TLS:
+    Enable: false
+    InsecureSkipVerify: false
+
+
+Kafka:
+  Consumer:
+    Brokers:
+      - localhost:9092
+    ClusterVersion: "3.2.0"
+    ConsumerGroup: "result-service"
+    MaxRetries: 3
+    WorkerPoolSize: 5
+    Retry:
+      HandlerTimeout: 20s
+      MaxRetry: 3
+      RetryInitialDelay: 100ms
+      MaxJitter: 500ms
+      BackOffConfig:
+        - 1m
+        - 5m
+        - 10m
+  Topics:
+    VoteSubmitData:
+      Value: "votes.submit"
+      ErrorHandler: "Phase1"
+      WithBackOff: true
+    VoteProcessed:
+      Value: "votes.processed"
+      ErrorHandler: "Phase1"
+      WithBackOff: false
+    VoteDLQ:
+      Value: "votes.dlq"
+      ErrorHandler: "Phase1"
+      WithBackOff: false
+
+GrpcServer:
+  Port: 35001
+

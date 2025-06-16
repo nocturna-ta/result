@@ -12,27 +12,29 @@ import (
 )
 
 type API struct {
-	prefix         string
-	port           uint
-	readTimeout    time.Duration
-	writeTimeout   time.Duration
-	requestTimeout time.Duration
-	enableSwagger  bool
-	voteResult     usecases.VoteResultUseCases
-	liveResult     usecases.LiveResultUsecases
-	wsController   *WebSocketController
+	prefix           string
+	port             uint
+	readTimeout      time.Duration
+	writeTimeout     time.Duration
+	requestTimeout   time.Duration
+	enableSwagger    bool
+	voteResult       usecases.VoteResultUseCases
+	liveResult       usecases.LiveResultUsecases
+	fastLiveResultUc usecases.FastLiveResultUseCases
+	wsController     *WebSocketController
 }
 
 type Options struct {
-	Prefix         string
-	Port           uint
-	ReadTimeout    time.Duration
-	WriteTimeout   time.Duration
-	RequestTimeout time.Duration
-	EnableSwagger  bool
-	VoteResult     usecases.VoteResultUseCases
-	LiveResult     usecases.LiveResultUsecases
-	WebSocketHub   *websocket.Hub
+	Prefix           string
+	Port             uint
+	ReadTimeout      time.Duration
+	WriteTimeout     time.Duration
+	RequestTimeout   time.Duration
+	EnableSwagger    bool
+	VoteResult       usecases.VoteResultUseCases
+	LiveResult       usecases.LiveResultUsecases
+	FastLiveResultUc usecases.FastLiveResultUseCases
+	WebSocketHub     *websocket.Hub
 }
 
 func New(opts *Options) *API {
@@ -45,15 +47,16 @@ func New(opts *Options) *API {
 	})
 
 	return &API{
-		prefix:         opts.Prefix,
-		port:           opts.Port,
-		readTimeout:    opts.ReadTimeout,
-		writeTimeout:   opts.WriteTimeout,
-		requestTimeout: opts.RequestTimeout,
-		enableSwagger:  opts.EnableSwagger,
-		voteResult:     opts.VoteResult,
-		liveResult:     opts.LiveResult,
-		wsController:   wsController,
+		prefix:           opts.Prefix,
+		port:             opts.Port,
+		readTimeout:      opts.ReadTimeout,
+		writeTimeout:     opts.WriteTimeout,
+		requestTimeout:   opts.RequestTimeout,
+		enableSwagger:    opts.EnableSwagger,
+		voteResult:       opts.VoteResult,
+		liveResult:       opts.LiveResult,
+		fastLiveResultUc: opts.FastLiveResultUc,
+		wsController:     wsController,
 	}
 }
 
@@ -100,6 +103,12 @@ func (api *API) RegisterRoute() *router.FastRouter {
 		})
 
 		v1.Group("/live", func(live *router.FastRouter) {
+
+			live.GET("/elections/:election_pair_id", api.GetFastLiveElectionResults, router.MustAuthorized(false))
+			live.GET("/cities/:city_name", api.GetFastCityResults, router.MustAuthorized(false))
+			live.GET("/elections", api.GetFastElectionSummaries, router.MustAuthorized(false))
+			live.GET("/rankings/:election_pair_id", api.GetFastCityRankings, router.MustAuthorized(false))
+
 			// REST endpoints for live results management
 			live.GET("/status", api.wsController.GetLiveResultsStatus, router.MustAuthorized(false))
 			live.POST("/broadcast", api.wsController.TriggerBroadcast, router.MustAuthorized(false))

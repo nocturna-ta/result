@@ -14,6 +14,7 @@ type (
 		Kafka      KafkaConfig      `yaml:"Kafka"`
 		Cors       CorsConfig       `yaml:"Cors"`
 		GrpcServer GrpcServerConfig `yaml:"GrpcServer"`
+		Redis      RedisConfig      `yaml:"RedisConfig"`
 	}
 
 	ServerConfig struct {
@@ -82,6 +83,10 @@ type (
 		Value        string `yaml:"Value" env:"KAFKA_TOPIC_VALUE"`
 		ErrorHandler string `yaml:"ErrorHandler"`
 		WithBackOff  bool   `yaml:"WithBackOff"`
+	}
+
+	RedisConfig struct {
+		Connection string `yaml:"Connection"`
 	}
 )
 

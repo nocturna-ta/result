@@ -1,15 +1,18 @@
-CREATE MATERIALIZED VIEW city_live_results_mv
-ENGINE = SummingMergeTree()
-PARTITION BY toYYYYMM(date)
-ORDER BY (city, election_pair_id, status, date)
+CREATE MATERIALIZED VIEW live_city_results_mv
+ENGINE = ReplacingMergeTree(updated_at)
+PARTITION BY toYYYYMM(last_updated)
+ORDER BY (city_name, election_pair_id)
 AS SELECT
-              region as city,
+              region as city_name,
               election_pair_id,
-              status,
-              toDate(created_at) as date,
-    count() as vote_count,
-    uniq(voter_id) as unique_voters,
-    max(updated_at) as last_updated
+              uniq(voter_id) as total_unique_voters,
+              countIf(status = 'confirmed') as confirmed_votes,
+              count() as total_vote_attempts,
+              (confirmed_votes * 100.0) / nullIf(total_vote_attempts, 0) as vote_success_rate,
+              (confirmed_votes * 100.0) / nullIf(
+                      (SELECT countIf(status = 'confirmed') FROM vote_results WHERE region = city_name), 0
+                                          ) as candidate_percentage_in_city,
+              max(updated_at) as last_updated,
+              now() as updated_at
    FROM vote_results
-   WHERE status = 'confirmed'
-   GROUP BY region, election_pair_id, status, toDate(created_at);
+   GROUP BY city_name, election_pair_id;

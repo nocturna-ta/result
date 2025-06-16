@@ -61,7 +61,7 @@ type Client struct {
 
 type Hub struct {
 	clients    map[string]*Client
-	broadcast  chan *LiveMessage
+	Broadcast  chan *LiveMessage
 	register   chan *Client
 	unregister chan *Client
 	mu         sync.RWMutex
@@ -73,7 +73,7 @@ func NewHub(ctx context.Context) *Hub {
 	hubCtx, cancel := context.WithCancel(ctx)
 	return &Hub{
 		clients:    make(map[string]*Client),
-		broadcast:  make(chan *LiveMessage, 256),
+		Broadcast:  make(chan *LiveMessage, 256),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		ctx:        hubCtx,
@@ -122,7 +122,7 @@ func (h *Hub) Run() {
 				"total_clients": len(h.clients),
 			}).Info("[Websocket Hub] Client unregistered")
 
-		case msg := <-h.broadcast:
+		case msg := <-h.Broadcast:
 			h.mu.RLock()
 			for _, client := range h.clients {
 				if h.shouldSendToClient(client, msg) {
@@ -248,7 +248,7 @@ func (h *Hub) BroadcastVoteUpdate(voteResult *response.VoteResultResponse) {
 	}
 
 	select {
-	case h.broadcast <- message:
+	case h.Broadcast <- message:
 	default:
 		log.Warn("[WebSocketHub] Broadcast channel full, dropping vote update message")
 	}
@@ -266,7 +266,7 @@ func (h *Hub) BroadcastElectionUpdate(electionResult *response.ElectionVoteResul
 	}
 
 	select {
-	case h.broadcast <- message:
+	case h.Broadcast <- message:
 	default:
 		log.Warn("[WebSocketHub] Broadcast channel full, dropping election update message")
 	}
@@ -283,7 +283,7 @@ func (h *Hub) BroadcastRegionUpdate(regionResult *response.RegionVoteResultRespo
 	}
 
 	select {
-	case h.broadcast <- message:
+	case h.Broadcast <- message:
 	default:
 		log.Warn("[WebSocketHub] Broadcast channel full, dropping region update message")
 	}
@@ -297,7 +297,7 @@ func (h *Hub) BroadcastStatisticsUpdate(stats *response.VoteStatisticsResponse) 
 	}
 
 	select {
-	case h.broadcast <- message:
+	case h.Broadcast <- message:
 	default:
 		log.Warn("[WebSocketHub] Broadcast channel full, dropping statistics update message")
 	}

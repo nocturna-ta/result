@@ -1,1 +1,1 @@
-DROP VIEW IF EXISTS city_live_results_mv;
+DROP VIEW IF EXISTS live_city_results_mv;

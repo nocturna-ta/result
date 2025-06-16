@@ -50,6 +50,9 @@ Kafka:
 GrpcServer:
   Port: 35001
 
+RedisConfig:
+  Connection: "redis://:@localhost:6379/result:"
+
 Cors:
   AllowOrigins: "*"
   AllowMethods: "GET,POST,PUT,DELETE,OPTIONS"

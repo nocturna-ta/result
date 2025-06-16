@@ -1,1 +1,1 @@
-DROP VIEW IF EXISTS election_total_mv;
+DROP VIEW IF EXISTS election_summary_mv;

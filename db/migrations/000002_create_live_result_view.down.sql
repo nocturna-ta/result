@@ -1,1 +1,0 @@
-DROP VIEW IF EXISTS election_live_results_mv;

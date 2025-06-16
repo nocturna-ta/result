@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	_ "github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/nocturna-ta/golib/cache"
 	"github.com/nocturna-ta/golib/database/sql"
 
 	"github.com/nocturna-ta/golib/log"
@@ -46,6 +47,11 @@ func run(cmd *cobra.Command, args []string) error {
 		ConnMaxLifetime: cfg.Database.ConnMaxLifetime,
 	}, sql.DriverClickHouse)
 
+	redis, err := cache.New(cfg.Redis.Connection)
+	if err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	}
+
 	//client, err := ethereum.GetEthereumClient(&cfg.Blockchain)
 	//if err != nil {
 	//	return err
@@ -54,9 +60,10 @@ func run(cmd *cobra.Command, args []string) error {
 	//defer client.Close()
 
 	appContainer := newContainer(&options{
-		Cfg: cfg,
-		DB:  database,
-		Ctx: ctx,
+		Cfg:   cfg,
+		DB:    database,
+		Ctx:   ctx,
+		Cache: redis,
 		//Client:    client,
 	})
 

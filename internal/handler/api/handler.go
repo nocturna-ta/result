@@ -10,10 +10,11 @@ import (
 )
 
 type Options struct {
-	Cfg          config.MainConfig
-	VoteResult   usecases.VoteResultUseCases
-	LiveResult   usecases.LiveResultUsecases
-	WebsocketHub *websocket.Hub
+	Cfg              config.MainConfig
+	VoteResult       usecases.VoteResultUseCases
+	LiveResult       usecases.LiveResultUsecases
+	FastLiveResultUc usecases.FastLiveResultUseCases
+	WebsocketHub     *websocket.Hub
 }
 
 type Handler struct {
@@ -27,15 +28,16 @@ func New(opts *Options) *Handler {
 		opts: opts,
 	}
 	handler.myRouter = controller.New(&controller.Options{
-		Prefix:         opts.Cfg.API.BasePath,
-		Port:           opts.Cfg.Server.Port,
-		ReadTimeout:    opts.Cfg.Server.ReadTimeout,
-		WriteTimeout:   opts.Cfg.Server.WriteTimeout,
-		RequestTimeout: opts.Cfg.API.APITimeout,
-		EnableSwagger:  opts.Cfg.API.EnableSwagger,
-		VoteResult:     opts.VoteResult,
-		LiveResult:     opts.LiveResult,
-		WebSocketHub:   opts.WebsocketHub,
+		Prefix:           opts.Cfg.API.BasePath,
+		Port:             opts.Cfg.Server.Port,
+		ReadTimeout:      opts.Cfg.Server.ReadTimeout,
+		WriteTimeout:     opts.Cfg.Server.WriteTimeout,
+		RequestTimeout:   opts.Cfg.API.APITimeout,
+		EnableSwagger:    opts.Cfg.API.EnableSwagger,
+		VoteResult:       opts.VoteResult,
+		LiveResult:       opts.LiveResult,
+		FastLiveResultUc: opts.FastLiveResultUc,
+		WebSocketHub:     opts.WebsocketHub,
 	}).RegisterRoute()
 	return handler
 }

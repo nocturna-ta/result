@@ -1,13 +1,15 @@
-CREATE MATERIALIZED VIEW election_totals_mv
-ENGINE = SummingMergeTree()
-PARTITION BY toYYYYMM(date)
-ORDER BY (election_pair_id, date)
+CREATE MATERIALIZED VIEW election_summary_mv
+ENGINE = ReplacingMergeTree(updated_at)
+PARTITION BY toYYYYMM(last_updated)
+ORDER BY election_pair_id
 AS SELECT
               election_pair_id,
-              toDate(created_at) as date,
-    count() as total_votes,
-    uniq(voter_id) as total_voters,
-    max(updated_at) as last_updated
+              uniq(voter_id) as total_unique_voters,
+              uniq(region) as total_regions,
+              countIf(status = 'confirmed') as total_confirmed_votes,
+              count() as total_vote_attempts,
+              (total_confirmed_votes * 100.0) / nullIf(total_vote_attempts, 0) as overall_success_rate,
+              max(updated_at) as last_updated,
+              now() as updated_at
    FROM vote_results
-   WHERE status = 'confirmed'
-   GROUP BY election_pair_id, toDate(created_at);
+   GROUP BY election_pair_id;

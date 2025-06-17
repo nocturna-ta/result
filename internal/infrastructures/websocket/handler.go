@@ -122,7 +122,7 @@ func (h *Handler) handleTextMessage(client *Client, message []byte) {
 func (h *Handler) handleSubscribe(client *Client, subMsg *SubscriptionMessage) {
 	filter := &MessageFilter{
 		ElectionPairID: subMsg.ElectionPairID,
-		Region:         subMsg.Region,
+		City:           subMsg.City,
 	}
 
 	client.AddSubscription(subMsg.Subscription, filter)
@@ -131,7 +131,7 @@ func (h *Handler) handleSubscribe(client *Client, subMsg *SubscriptionMessage) {
 		"client_id":        client.ID,
 		"subscription":     subMsg.Subscription,
 		"election_pair_id": subMsg.ElectionPairID,
-		"region":           subMsg.Region,
+		"City":             subMsg.City,
 	}).Info("[WebSocketHandler] Client subscribed")
 
 	ack := &LiveMessage{

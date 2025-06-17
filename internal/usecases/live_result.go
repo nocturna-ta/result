@@ -2,20 +2,38 @@ package usecases
 
 import (
 	"context"
+	"github.com/nocturna-ta/result/internal/usecases/response"
 	"time"
 )
 
-type LiveResultUsecases interface {
-	// Broadcast individual updates
+type LiveResultUseCases interface {
+	GetLiveElectionResultsWithCache(ctx context.Context, electionPairID string) (*response.ElectionResultsResponse, error)
+	GetLiveCityResultsWithCache(ctx context.Context, cityName string) (*response.CityResultsResponse, error)
+	GetElectionSummaryWithCache(ctx context.Context, electionPairID string) (*response.ElectionSummaryResponse, error)
+	GetCityRankingsWithCache(ctx context.Context, electionPairID string, limit int) (*response.CityRankingsResponse, error)
+	GetAllElectionsSummaryWithCache(ctx context.Context) (*response.AllElectionsSummaryResponse, error)
+
+	// Individual broadcast methods
 	BroadcastVoteUpdate(ctx context.Context, voteID string) error
-	BroadcastElectionUpdate(ctx context.Context, electionPairID string) error
-	BroadcastRegionUpdate(ctx context.Context, region string) error
-	BroadcastStatisticsUpdate(ctx context.Context) error
+	BroadcastLiveResultsUpdate(ctx context.Context, electionPairID string) error
+	BroadcastIncrementalUpdate(ctx context.Context, updateData *response.IncrementalUpdateData) error
+	BroadcastCityResultsUpdate(ctx context.Context, cityName string) error
+	BroadcastRankingsUpdate(ctx context.Context, electionPairID string, limit int) error
+	BroadcastElectionSummaryUpdate(ctx context.Context, electionPairID string) error
+	BroadcastAllElectionsUpdate(ctx context.Context) error
 
-	// Broadcast multiple updates at once
-	BroadcastAllUpdates(ctx context.Context, electionPairID, region string) error
+	// Bulk broadcast method
+	BroadcastBulkUpdate(ctx context.Context, electionPairID string) error
 
-	// Management functions
-	GetConnectedClients(ctx context.Context) int
-	StartPeriodicBroadcast(ctx context.Context, interval time.Duration)
+	// Cache management methods
+	InvalidateElectionCache(ctx context.Context, electionPairID string) error
+	InvalidateCityCache(ctx context.Context, cityName string) error
+	InvalidateAllCache(ctx context.Context) error
+
+	// Background task methods
+	StartCacheWarming(ctx context.Context, activeElections []string)
+	StartIncrementalBroadcast(ctx context.Context, interval time.Duration)
+
+	// Statistics and monitoring
+	GetConnectedClientsCount(ctx context.Context) int
 }

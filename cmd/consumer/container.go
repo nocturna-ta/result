@@ -30,19 +30,25 @@ func newContainer(opts *options) *container {
 		DB: opts.DB,
 	})
 
+	liveResultRepo := dao.NewLiveResultRepository(&dao.OptsLiveResultRepository{
+		DB: opts.DB,
+	})
+
 	wsHub := websocket.NewHub(opts.Ctx)
 
 	liveResultUc := live_result.New(&live_result.Options{
+		LiveResultRepo: liveResultRepo,
 		VoteResultRepo: resultRepo,
-		Hub:            wsHub,
+		RedisCache:     nil,
+		WsHub:          wsHub,
 	})
 
 	go wsHub.Run()
 
 	consumerUc := consumer.New(&consumer.Options{
-		ResultRepo: resultRepo,
-		LiveResult: liveResultUc,
-		Topics:     opts.Cfg.Kafka.Topics,
+		ResultRepo:   resultRepo,
+		LiveResultUc: liveResultUc,
+		Topics:       opts.Cfg.Kafka.Topics,
 	})
 
 	eventHandler := handler.New(&handler.Options{

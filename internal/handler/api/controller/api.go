@@ -12,29 +12,25 @@ import (
 )
 
 type API struct {
-	prefix           string
-	port             uint
-	readTimeout      time.Duration
-	writeTimeout     time.Duration
-	requestTimeout   time.Duration
-	enableSwagger    bool
-	voteResult       usecases.VoteResultUseCases
-	liveResult       usecases.LiveResultUsecases
-	fastLiveResultUc usecases.FastLiveResultUseCases
-	wsController     *WebSocketController
+	prefix         string
+	port           uint
+	readTimeout    time.Duration
+	writeTimeout   time.Duration
+	requestTimeout time.Duration
+	enableSwagger  bool
+	liveResultUc   usecases.LiveResultUseCases
+	wsController   *WebSocketController
 }
 
 type Options struct {
-	Prefix           string
-	Port             uint
-	ReadTimeout      time.Duration
-	WriteTimeout     time.Duration
-	RequestTimeout   time.Duration
-	EnableSwagger    bool
-	VoteResult       usecases.VoteResultUseCases
-	LiveResult       usecases.LiveResultUsecases
-	FastLiveResultUc usecases.FastLiveResultUseCases
-	WebSocketHub     *websocket.Hub
+	Prefix         string
+	Port           uint
+	ReadTimeout    time.Duration
+	WriteTimeout   time.Duration
+	RequestTimeout time.Duration
+	EnableSwagger  bool
+	LiveResultUc   usecases.LiveResultUseCases
+	WebSocketHub   *websocket.Hub
 }
 
 func New(opts *Options) *API {
@@ -42,22 +38,19 @@ func New(opts *Options) *API {
 	wsHandler := websocket.NewHandler(opts.WebSocketHub)
 
 	wsController := NewWebSocketController(&WebSocketControllerOptions{
-		Handler:           wsHandler,
-		LiveResultService: opts.LiveResult,
-		FastResultUc:      opts.FastLiveResultUc,
+		Handler:      wsHandler,
+		LiveResultUc: opts.LiveResultUc,
 	})
 
 	return &API{
-		prefix:           opts.Prefix,
-		port:             opts.Port,
-		readTimeout:      opts.ReadTimeout,
-		writeTimeout:     opts.WriteTimeout,
-		requestTimeout:   opts.RequestTimeout,
-		enableSwagger:    opts.EnableSwagger,
-		voteResult:       opts.VoteResult,
-		liveResult:       opts.LiveResult,
-		fastLiveResultUc: opts.FastLiveResultUc,
-		wsController:     wsController,
+		prefix:         opts.Prefix,
+		port:           opts.Port,
+		readTimeout:    opts.ReadTimeout,
+		writeTimeout:   opts.WriteTimeout,
+		requestTimeout: opts.RequestTimeout,
+		enableSwagger:  opts.EnableSwagger,
+		liveResultUc:   opts.LiveResultUc,
+		wsController:   wsController,
 	}
 }
 
@@ -83,28 +76,7 @@ func (api *API) RegisterRoute() *router.FastRouter {
 
 	myRouter.GET("/health", api.Ping, router.MustAuthorized(false))
 	myRouter.Group("/v1", func(v1 *router.FastRouter) {
-		v1.Group("/results", func(results *router.FastRouter) {
-			results.GET("/votes/:id", api.GetVoteResult, router.MustAuthorized(false))
-			results.GET("/votes", api.GetVoteResultByStatus, router.MustAuthorized(false))
-			results.GET("/votes/count", api.CountVotesByStatus, router.MustAuthorized(false))
-
-			results.GET("/elections", api.GetAllElectionResults, router.MustAuthorized(false))
-			results.GET("/elections/:election_pair_id", api.GetElectionResults, router.MustAuthorized(false))
-			results.GET("/elections/:election_pair_id/votes", api.GetVoteResultByElectionPair, router.MustAuthorized(false))
-			results.GET("/elections/:election_pair_id/count", api.CountVotesByElectionPair, router.MustAuthorized(false))
-
-			results.GET("/regions", api.GetRegionStatistics, router.MustAuthorized(false))
-			results.GET("/regions/:region", api.GetRegionResults, router.MustAuthorized(false))
-			results.GET("/regions/:region/votes", api.GetVoteResultByRegion, router.MustAuthorized(false))
-			results.GET("/regions/:region/elections", api.GetElectionResultsByRegion, router.MustAuthorized(false))
-			results.GET("/regions/:region/count", api.CountVotesByRegion, router.MustAuthorized(false))
-
-			results.GET("/statistics", api.GetOverallStatistics, router.MustAuthorized(false))
-			results.GET("/statistics/daily", api.GetDailyStatistics, router.MustAuthorized(false))
-		})
-
 		v1.Group("/live", func(live *router.FastRouter) {
-
 			live.GET("/elections/:election_pair_id", api.GetFastLiveElectionResults, router.MustAuthorized(false))
 			live.GET("/elections/:election_pair_id/summary", api.GetFastElectionSummary, router.MustAuthorized(false))
 			live.GET("/cities/:city_name", api.GetFastCityResults, router.MustAuthorized(false))

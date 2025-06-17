@@ -14,13 +14,13 @@ import (
 // GetFastLiveElectionResults godoc
 // @Summary Get fast live election results with percentages
 // @Description Get real-time election results with percentages optimized for high performance using materialized views and Redis cache
-// @Tags Fast Live Results
+// @Tags Live Results
 // @Accept json
 // @Produce json
 // @Param election_pair_id path string true "Election Pair ID"
 // @Param include_cities query bool false "Include top cities data" default(true)
 // @Param cities_limit query int false "Limit number of cities returned" default(10)
-// @Success 200 {object} jsonResponse{data=response.FastElectionResultsResponse} "Fast live election results"
+// @Success 200 {object} jsonResponse{data=response.ElectionResultsResponse} "Fast live election results"
 // @Router /v1/live/elections/{election_pair_id} [get]
 func (api *API) GetFastLiveElectionResults(ctx context.Context, req *router.Request) (*rest.JSONResponse, error) {
 	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultController.GetFastLiveElectionResults")
@@ -35,7 +35,7 @@ func (api *API) GetFastLiveElectionResults(ctx context.Context, req *router.Requ
 	}
 
 	// Get fast live results with cache
-	results, err := api.fastLiveResultUc.GetLiveElectionResultsWithCache(ctx, electionPairID)
+	results, err := api.liveResultUc.GetLiveElectionResultsWithCache(ctx, electionPairID)
 	if err != nil {
 		return custresp.CustomErrorResponse(err)
 	}
@@ -46,11 +46,11 @@ func (api *API) GetFastLiveElectionResults(ctx context.Context, req *router.Requ
 // GetFastCityResults godoc
 // @Summary Get fast live city results
 // @Description Get real-time city voting results optimized for high performance using materialized views and Redis cache
-// @Tags Fast Live Results
+// @Tags Live Results
 // @Accept json
 // @Produce json
 // @Param city_name path string true "City Name"
-// @Success 200 {object} jsonResponse{data=response.FastCityResultsResponse} "Fast live city results"
+// @Success 200 {object} jsonResponse{data=response.CityResultsResponse} "Fast live city results"
 // @Router /v1/live/cities/{city_name} [get]
 func (api *API) GetFastCityResults(ctx context.Context, req *router.Request) (*rest.JSONResponse, error) {
 	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultController.GetFastCityResults")
@@ -64,13 +64,11 @@ func (api *API) GetFastCityResults(ctx context.Context, req *router.Request) (*r
 		})
 	}
 
-	// Get fast city results with cache
-	results, err := api.fastLiveResultUc.GetLiveCityResultsWithCache(ctx, cityName)
+	results, err := api.liveResultUc.GetLiveCityResultsWithCache(ctx, cityName)
 	if err != nil {
 		return custresp.CustomErrorResponse(err)
 	}
 
-	// Check if city has any results
 	if len(results.ElectionResults) == 0 {
 		return custresp.CustomErrorResponse(&custerr.ErrChain{
 			Message: "no results found for city",
@@ -84,18 +82,18 @@ func (api *API) GetFastCityResults(ctx context.Context, req *router.Request) (*r
 // GetFastElectionSummaries godoc
 // @Summary Get fast summaries for all elections
 // @Description Get real-time summaries for all active elections optimized for dashboards using materialized views and Redis cache
-// @Tags Fast Live Results
+// @Tags Live Results
 // @Accept json
 // @Produce json
 // @Param limit query int false "Limit number of elections returned" default(20)
-// @Success 200 {object} jsonResponse{data=response.FastAllElectionsSummaryResponse} "Fast election summaries"
+// @Success 200 {object} jsonResponse{data=response.AllElectionsSummaryResponse} "Fast election summaries"
 // @Router /v1/live/elections [get]
 func (api *API) GetFastElectionSummaries(ctx context.Context, req *router.Request) (*rest.JSONResponse, error) {
 	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultController.GetFastElectionSummaries")
 	defer span.End()
 
 	// Get all election summaries with cache
-	results, err := api.fastLiveResultUc.GetAllElectionsSummaryWithCache(ctx)
+	results, err := api.liveResultUc.GetAllElectionsSummaryWithCache(ctx)
 	if err != nil {
 		return custresp.CustomErrorResponse(err)
 	}
@@ -113,12 +111,12 @@ func (api *API) GetFastElectionSummaries(ctx context.Context, req *router.Reques
 // GetFastCityRankings godoc
 // @Summary Get fast city rankings for an election
 // @Description Get real-time city rankings for a specific election optimized for high performance using materialized views and Redis cache
-// @Tags Fast Live Results
+// @Tags Live Results
 // @Accept json
 // @Produce json
 // @Param election_pair_id path string true "Election Pair ID"
 // @Param limit query int false "Limit number of cities returned" default(20)
-// @Success 200 {object} jsonResponse{data=response.FastCityRankingsResponse} "Fast city rankings"
+// @Success 200 {object} jsonResponse{data=response.CityRankingsResponse} "Fast city rankings"
 // @Router /v1/live/rankings/{election_pair_id} [get]
 func (api *API) GetFastCityRankings(ctx context.Context, req *router.Request) (*rest.JSONResponse, error) {
 	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultController.GetFastCityRankings")
@@ -138,7 +136,7 @@ func (api *API) GetFastCityRankings(ctx context.Context, req *router.Request) (*
 	}
 
 	// Get fast city rankings with cache
-	results, err := api.fastLiveResultUc.GetCityRankingsWithCache(ctx, electionPairID, limit)
+	results, err := api.liveResultUc.GetCityRankingsWithCache(ctx, electionPairID, limit)
 	if err != nil {
 		return custresp.CustomErrorResponse(err)
 	}
@@ -149,11 +147,11 @@ func (api *API) GetFastCityRankings(ctx context.Context, req *router.Request) (*
 // GetFastElectionSummary godoc
 // @Summary Get fast election summary
 // @Description Get real-time summary for a specific election optimized for high performance using materialized views and Redis cache
-// @Tags Fast Live Results
+// @Tags Live Results
 // @Accept json
 // @Produce json
 // @Param election_pair_id path string true "Election Pair ID"
-// @Success 200 {object} jsonResponse{data=response.FastElectionSummaryResponse} "Fast election summary"
+// @Success 200 {object} jsonResponse{data=response.ElectionSummaryResponse} "Fast election summary"
 // @Router /v1/live/elections/{election_pair_id}/summary [get]
 func (api *API) GetFastElectionSummary(ctx context.Context, req *router.Request) (*rest.JSONResponse, error) {
 	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultController.GetFastElectionSummary")
@@ -168,7 +166,7 @@ func (api *API) GetFastElectionSummary(ctx context.Context, req *router.Request)
 	}
 
 	// Get fast election summary with cache
-	results, err := api.fastLiveResultUc.GetElectionSummaryWithCache(ctx, electionPairID)
+	results, err := api.liveResultUc.GetElectionSummaryWithCache(ctx, electionPairID)
 	if err != nil {
 		return custresp.CustomErrorResponse(err)
 	}
@@ -181,7 +179,7 @@ func (api *API) GetFastElectionSummary(ctx context.Context, req *router.Request)
 // InvalidateElectionCache godoc
 // @Summary Invalidate election cache
 // @Description Invalidate all cache entries related to a specific election (admin only)
-// @Tags Fast Live Results Admin
+// @Tags Live Results Admin
 // @Accept json
 // @Produce json
 // @Param election_pair_id path string true "Election Pair ID"
@@ -199,7 +197,7 @@ func (api *API) InvalidateElectionCache(ctx context.Context, req *router.Request
 		})
 	}
 
-	err := api.fastLiveResultUc.InvalidateElectionCache(ctx, electionPairID)
+	err := api.liveResultUc.InvalidateElectionCache(ctx, electionPairID)
 	if err != nil {
 		return custresp.CustomErrorResponse(err)
 	}
@@ -214,7 +212,7 @@ func (api *API) InvalidateElectionCache(ctx context.Context, req *router.Request
 // InvalidateCityCache godoc
 // @Summary Invalidate city cache
 // @Description Invalidate cache entries for a specific city (admin only)
-// @Tags Fast Live Results Admin
+// @Tags Live Results Admin
 // @Accept json
 // @Produce json
 // @Param city_name path string true "City Name"
@@ -232,7 +230,7 @@ func (api *API) InvalidateCityCache(ctx context.Context, req *router.Request) (*
 		})
 	}
 
-	err := api.fastLiveResultUc.InvalidateCityCache(ctx, cityName)
+	err := api.liveResultUc.InvalidateCityCache(ctx, cityName)
 	if err != nil {
 		return custresp.CustomErrorResponse(err)
 	}
@@ -247,7 +245,7 @@ func (api *API) InvalidateCityCache(ctx context.Context, req *router.Request) (*
 // InvalidateAllCache godoc
 // @Summary Invalidate all cache
 // @Description Invalidate all live results cache entries (admin only)
-// @Tags Fast Live Results Admin
+// @Tags Live Results Admin
 // @Accept json
 // @Produce json
 // @Success 200 {object} jsonResponse{data=map[string]interface{}} "All cache invalidated"
@@ -256,7 +254,7 @@ func (api *API) InvalidateAllCache(ctx context.Context, req *router.Request) (*r
 	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultController.InvalidateAllCache")
 	defer span.End()
 
-	err := api.fastLiveResultUc.InvalidateAllCache(ctx)
+	err := api.liveResultUc.InvalidateAllCache(ctx)
 	if err != nil {
 		return custresp.CustomErrorResponse(err)
 	}
@@ -267,30 +265,10 @@ func (api *API) InvalidateAllCache(ctx context.Context, req *router.Request) (*r
 	}), nil
 }
 
-// GetCacheStatistics godoc
-// @Summary Get cache statistics
-// @Description Get performance statistics for the live results cache (admin only)
-// @Tags Fast Live Results Admin
-// @Accept json
-// @Produce json
-// @Success 200 {object} jsonResponse{data=response.CacheStatisticsResponse} "Cache statistics"
-// @Router /v1/admin/cache/statistics [get]
-func (api *API) GetCacheStatistics(ctx context.Context, req *router.Request) (*rest.JSONResponse, error) {
-	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultController.GetCacheStatistics")
-	defer span.End()
-
-	stats, err := api.fastLiveResultUc.GetCacheStatistics(ctx)
-	if err != nil {
-		return custresp.CustomErrorResponse(err)
-	}
-
-	return rest.NewJSONResponse().SetData(stats), nil
-}
-
 // TriggerLiveResultsBroadcast godoc
 // @Summary Trigger live results broadcast
 // @Description Manually trigger a broadcast of live results for testing or manual refresh (admin only)
-// @Tags Fast Live Results Admin
+// @Tags Live Results Admin
 // @Accept json
 // @Produce json
 // @Param election_pair_id query string false "Election Pair ID to broadcast"
@@ -302,7 +280,7 @@ func (api *API) TriggerLiveResultsBroadcast(ctx context.Context, req *router.Req
 
 	electionPairID := req.Query("election_pair_id", "")
 
-	connectedClients := api.fastLiveResultUc.GetConnectedClientsCount(ctx)
+	connectedClients := api.liveResultUc.GetConnectedClientsCount(ctx)
 	if connectedClients == 0 {
 		return rest.NewJSONResponse().SetData(map[string]interface{}{
 			"message": "No WebSocket clients connected",
@@ -312,16 +290,16 @@ func (api *API) TriggerLiveResultsBroadcast(ctx context.Context, req *router.Req
 
 	var err error
 	if electionPairID != "" {
-		err = api.fastLiveResultUc.BroadcastLiveResultsUpdate(ctx, electionPairID)
+		err = api.liveResultUc.BroadcastLiveResultsUpdate(ctx, electionPairID)
 	} else {
 		// Broadcast for all active elections
-		allElections, getErr := api.fastLiveResultUc.GetAllElectionsSummaryWithCache(ctx)
+		allElections, getErr := api.liveResultUc.GetAllElectionsSummaryWithCache(ctx)
 		if getErr != nil {
 			return custresp.CustomErrorResponse(getErr)
 		}
 
 		for _, election := range allElections.Elections {
-			if broadcastErr := api.fastLiveResultUc.BroadcastLiveResultsUpdate(ctx, election.ElectionID); broadcastErr != nil {
+			if broadcastErr := api.liveResultUc.BroadcastLiveResultsUpdate(ctx, election.ElectionID); broadcastErr != nil {
 				// Log error but continue with other elections
 			}
 		}

@@ -17,26 +17,15 @@ definitions:
       message:
         type: string
     type: object
-  response.CacheStatisticsResponse:
+  response.AllElectionsSummaryResponse:
     properties:
-      active_elections:
+      elections:
         items:
-          type: string
+          $ref: '#/definitions/response.ElectionSummaryResponse'
         type: array
-      cache_size:
+      last_updated:
         type: string
-      connected_clients:
-        type: integer
-      hit_rate:
-        type: number
-      last_cache_refresh:
-        type: string
-      redis_info:
-        additionalProperties: true
-        type: object
-      total_hits:
-        type: integer
-      total_misses:
+      total_elections:
         type: integer
     type: object
   response.CityElectionResult:
@@ -65,6 +54,19 @@ definitions:
       unique_voters:
         type: integer
     type: object
+  response.CityRankingsResponse:
+    properties:
+      election_id:
+        type: string
+      last_updated:
+        type: string
+      rankings:
+        items:
+          $ref: '#/definitions/response.CityRankingItem'
+        type: array
+      total_cities:
+        type: integer
+    type: object
   response.CityResultSummary:
     properties:
       city:
@@ -78,74 +80,7 @@ definitions:
       votes:
         type: integer
     type: object
-  response.CityStatistics:
-    properties:
-      avg_votes_per_election:
-        type: number
-      leading_election:
-        type: string
-      participation_rate:
-        type: number
-      total_elections:
-        type: integer
-    type: object
-  response.ElectionStatsSummary:
-    properties:
-      active_regions:
-        type: integer
-      completion_rate:
-        type: number
-      success_rate:
-        type: number
-      total_regions:
-        type: integer
-      total_voters:
-        type: integer
-      votes_per_second:
-        type: number
-    type: object
-  response.ElectionVoteResultResponse:
-    properties:
-      confirmed_votes:
-        type: integer
-      election_pair_id:
-        type: string
-      error_votes:
-        type: integer
-      last_updated:
-        type: string
-      pending_votes:
-        type: integer
-      region:
-        type: string
-      total_votes:
-        type: integer
-    type: object
-  response.FastAllElectionsSummaryResponse:
-    properties:
-      elections:
-        items:
-          $ref: '#/definitions/response.FastElectionSummaryResponse'
-        type: array
-      last_updated:
-        type: string
-      total_elections:
-        type: integer
-    type: object
-  response.FastCityRankingsResponse:
-    properties:
-      election_id:
-        type: string
-      last_updated:
-        type: string
-      rankings:
-        items:
-          $ref: '#/definitions/response.CityRankingItem'
-        type: array
-      total_cities:
-        type: integer
-    type: object
-  response.FastCityResultsResponse:
+  response.CityResultsResponse:
     properties:
       city_name:
         type: string
@@ -162,7 +97,18 @@ definitions:
       total_votes:
         type: integer
     type: object
-  response.FastElectionResultsResponse:
+  response.CityStatistics:
+    properties:
+      avg_votes_per_election:
+        type: number
+      leading_election:
+        type: string
+      participation_rate:
+        type: number
+      total_elections:
+        type: integer
+    type: object
+  response.ElectionResultsResponse:
     properties:
       election_id:
         type: string
@@ -185,7 +131,22 @@ definitions:
       total_votes:
         type: integer
     type: object
-  response.FastElectionSummaryResponse:
+  response.ElectionStatsSummary:
+    properties:
+      active_regions:
+        type: integer
+      completion_rate:
+        type: number
+      success_rate:
+        type: number
+      total_regions:
+        type: integer
+      total_voters:
+        type: integer
+      votes_per_second:
+        type: number
+    type: object
+  response.ElectionSummaryResponse:
     properties:
       election_id:
         type: string
@@ -207,61 +168,6 @@ definitions:
       region:
         type: string
       votes:
-        type: integer
-    type: object
-  response.RegionVoteResultResponse:
-    properties:
-      confirmed_votes:
-        type: integer
-      error_votes:
-        type: integer
-      last_updated:
-        type: string
-      pending_votes:
-        type: integer
-      region:
-        type: string
-      total_votes:
-        type: integer
-    type: object
-  response.VoteResultResponse:
-    properties:
-      created_at:
-        type: string
-      election_pair_id:
-        type: string
-      error_message:
-        type: string
-      id:
-        type: string
-      processed_at:
-        type: string
-      region:
-        type: string
-      status:
-        type: string
-      transaction_hash:
-        type: string
-      updated_at:
-        type: string
-      voted_at:
-        type: string
-      voter_id:
-        type: string
-    type: object
-  response.VoteStatisticsResponse:
-    properties:
-      confirmed_votes:
-        type: integer
-      error_votes:
-        type: integer
-      last_updated:
-        type: string
-      pending_votes:
-        type: integer
-      success_rate:
-        type: number
-      total_votes:
         type: integer
     type: object
 info:
@@ -329,7 +235,7 @@ paths:
               type: object
       summary: Trigger live results broadcast
       tags:
-      - Fast Live Results Admin
+      - Live Results Admin
   /v1/admin/cache/invalidate/all:
     post:
       consumes:
@@ -350,7 +256,7 @@ paths:
               type: object
       summary: Invalidate all cache
       tags:
-      - Fast Live Results Admin
+      - Live Results Admin
   /v1/admin/cache/invalidate/city/{city_name}:
     post:
       consumes:
@@ -377,7 +283,7 @@ paths:
               type: object
       summary: Invalidate city cache
       tags:
-      - Fast Live Results Admin
+      - Live Results Admin
   /v1/admin/cache/invalidate/election/{election_pair_id}:
     post:
       consumes:
@@ -405,27 +311,7 @@ paths:
               type: object
       summary: Invalidate election cache
       tags:
-      - Fast Live Results Admin
-  /v1/admin/cache/statistics:
-    get:
-      consumes:
-      - application/json
-      description: Get performance statistics for the live results cache (admin only)
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Cache statistics
-          schema:
-            allOf:
-            - $ref: '#/definitions/controller.jsonResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/response.CacheStatisticsResponse'
-              type: object
-      summary: Get cache statistics
-      tags:
-      - Fast Live Results Admin
+      - Live Results Admin
   /v1/live/broadcast:
     post:
       consumes:
@@ -437,9 +323,9 @@ paths:
         in: query
         name: election_pair_id
         type: string
-      - description: Region to broadcast
+      - description: City name for fast results broadcast
         in: query
-        name: region
+        name: city
         type: string
       - default: all
         description: 'Broadcast type: vote, election, region, statistics, all'
@@ -484,11 +370,11 @@ paths:
             - $ref: '#/definitions/controller.jsonResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/response.FastCityResultsResponse'
+                  $ref: '#/definitions/response.CityResultsResponse'
               type: object
       summary: Get fast live city results
       tags:
-      - Fast Live Results
+      - Live Results
   /v1/live/elections:
     get:
       consumes:
@@ -511,11 +397,11 @@ paths:
             - $ref: '#/definitions/controller.jsonResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/response.FastAllElectionsSummaryResponse'
+                  $ref: '#/definitions/response.AllElectionsSummaryResponse'
               type: object
       summary: Get fast summaries for all elections
       tags:
-      - Fast Live Results
+      - Live Results
   /v1/live/elections/{election_pair_id}:
     get:
       consumes:
@@ -548,11 +434,11 @@ paths:
             - $ref: '#/definitions/controller.jsonResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/response.FastElectionResultsResponse'
+                  $ref: '#/definitions/response.ElectionResultsResponse'
               type: object
       summary: Get fast live election results with percentages
       tags:
-      - Fast Live Results
+      - Live Results
   /v1/live/elections/{election_pair_id}/summary:
     get:
       consumes:
@@ -575,11 +461,11 @@ paths:
             - $ref: '#/definitions/controller.jsonResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/response.FastElectionSummaryResponse'
+                  $ref: '#/definitions/response.ElectionSummaryResponse'
               type: object
       summary: Get fast election summary
       tags:
-      - Fast Live Results
+      - Live Results
   /v1/live/rankings/{election_pair_id}:
     get:
       consumes:
@@ -607,11 +493,11 @@ paths:
             - $ref: '#/definitions/controller.jsonResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/response.FastCityRankingsResponse'
+                  $ref: '#/definitions/response.CityRankingsResponse'
               type: object
       summary: Get fast city rankings for an election
       tags:
-      - Fast Live Results
+      - Live Results
   /v1/live/status:
     get:
       consumes:
@@ -633,403 +519,4 @@ paths:
       summary: Get live results WebSocket status
       tags:
       - Live Results
-  /v1/results/elections:
-    get:
-      consumes:
-      - application/json
-      description: Get all election results across all regions and pairs
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of all election results
-          schema:
-            allOf:
-            - $ref: '#/definitions/controller.jsonResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/response.ElectionVoteResultResponse'
-                  type: array
-              type: object
-      summary: Get all election results
-      tags:
-      - Results
-  /v1/results/elections/{election_pair_id}:
-    get:
-      consumes:
-      - application/json
-      description: Get detailed election results for a specific election pair
-      parameters:
-      - description: Election Pair ID
-        in: path
-        name: election_pair_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Election results data
-          schema:
-            allOf:
-            - $ref: '#/definitions/controller.jsonResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/response.ElectionVoteResultResponse'
-              type: object
-      summary: Get election results by election pair ID
-      tags:
-      - Results
-  /v1/results/elections/{election_pair_id}/count:
-    get:
-      consumes:
-      - application/json
-      description: Count the number of votes for a specific election pair
-      parameters:
-      - description: Election Pair ID
-        in: path
-        name: election_pair_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Count of votes
-          schema:
-            allOf:
-            - $ref: '#/definitions/controller.jsonResponse'
-            - properties:
-                data:
-                  additionalProperties: true
-                  type: object
-              type: object
-      summary: Count votes by election pair ID
-      tags:
-      - Results
-  /v1/results/elections/{election_pair_id}/votes:
-    get:
-      consumes:
-      - application/json
-      description: Get all vote results for a specific election pair
-      parameters:
-      - description: Election Pair ID
-        in: path
-        name: election_pair_id
-        required: true
-        type: string
-      - default: 50
-        description: Limit the number of results
-        in: query
-        name: limit
-        type: integer
-      - default: 0
-        description: Offset for pagination
-        in: query
-        name: offset
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of vote results
-          schema:
-            allOf:
-            - $ref: '#/definitions/controller.jsonResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/response.VoteResultResponse'
-                  type: array
-              type: object
-      summary: Get vote results by election pair ID
-      tags:
-      - Results
-  /v1/results/regions:
-    get:
-      consumes:
-      - application/json
-      description: Get statistical data for all regions
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of region statistics
-          schema:
-            allOf:
-            - $ref: '#/definitions/controller.jsonResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/response.RegionVoteResultResponse'
-                  type: array
-              type: object
-      summary: Get region statistics
-      tags:
-      - Results
-  /v1/results/regions/{region}:
-    get:
-      consumes:
-      - application/json
-      description: Get detailed region results for a specific region
-      parameters:
-      - description: Region
-        in: path
-        name: region
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Region results data
-          schema:
-            allOf:
-            - $ref: '#/definitions/controller.jsonResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/response.RegionVoteResultResponse'
-              type: object
-      summary: Get region results by region
-      tags:
-      - Results
-  /v1/results/regions/{region}/count:
-    get:
-      consumes:
-      - application/json
-      description: Count the number of votes in a specific region
-      parameters:
-      - description: Region
-        in: path
-        name: region
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Count of votes
-          schema:
-            allOf:
-            - $ref: '#/definitions/controller.jsonResponse'
-            - properties:
-                data:
-                  additionalProperties: true
-                  type: object
-              type: object
-      summary: Count votes by region
-      tags:
-      - Results
-  /v1/results/regions/{region}/elections:
-    get:
-      consumes:
-      - application/json
-      description: Get detailed election results for a specific region
-      parameters:
-      - description: Region
-        in: path
-        name: region
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of election results
-          schema:
-            allOf:
-            - $ref: '#/definitions/controller.jsonResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/response.ElectionVoteResultResponse'
-                  type: array
-              type: object
-      summary: Get election results by region
-      tags:
-      - Results
-  /v1/results/regions/{region}/votes:
-    get:
-      consumes:
-      - application/json
-      description: Get all vote results for a specific region
-      parameters:
-      - description: Region
-        in: path
-        name: region
-        required: true
-        type: string
-      - default: 50
-        description: Limit the number of results
-        in: query
-        name: limit
-        type: integer
-      - default: 0
-        description: Offset for pagination
-        in: query
-        name: offset
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of vote results
-          schema:
-            allOf:
-            - $ref: '#/definitions/controller.jsonResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/response.VoteResultResponse'
-                  type: array
-              type: object
-      summary: Get vote results by region
-      tags:
-      - Results
-  /v1/results/statistics:
-    get:
-      consumes:
-      - application/json
-      description: Get overall vote statistics including total votes, valid votes,
-        and invalid votes
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Overall vote statistics data
-          schema:
-            allOf:
-            - $ref: '#/definitions/controller.jsonResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/response.VoteStatisticsResponse'
-              type: object
-      summary: Get overall vote statistics
-      tags:
-      - Results
-  /v1/results/statistics/daily:
-    get:
-      consumes:
-      - application/json
-      description: Get daily vote statistics for a specified date range
-      parameters:
-      - description: Start date in YYYY-MM-DD format
-        in: query
-        name: start_date
-        required: true
-        type: string
-      - description: End date in YYYY-MM-DD format
-        in: query
-        name: end_date
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of daily vote statistics
-          schema:
-            allOf:
-            - $ref: '#/definitions/controller.jsonResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/response.VoteStatisticsResponse'
-                  type: array
-              type: object
-      summary: Get daily vote statistics
-      tags:
-      - Results
-  /v1/results/votes:
-    get:
-      consumes:
-      - application/json
-      description: Get all vote results with a specific status
-      parameters:
-      - description: Vote Result Status
-        in: query
-        name: status
-        required: true
-        type: string
-      - default: 50
-        description: Limit the number of results
-        in: query
-        name: limit
-        type: integer
-      - default: 0
-        description: Offset for pagination
-        in: query
-        name: offset
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of vote results
-          schema:
-            allOf:
-            - $ref: '#/definitions/controller.jsonResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/response.VoteResultResponse'
-                  type: array
-              type: object
-      summary: Get vote results by status
-      tags:
-      - Results
-  /v1/results/votes/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Get a specific vote result by its ID
-      parameters:
-      - description: Vote Result ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Vote result data
-          schema:
-            allOf:
-            - $ref: '#/definitions/controller.jsonResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/response.VoteResultResponse'
-              type: object
-      summary: Get vote result by ID
-      tags:
-      - Results
-  /v1/results/votes/count:
-    get:
-      consumes:
-      - application/json
-      description: Count the number of votes with a specific status
-      parameters:
-      - description: Vote Result Status
-        in: query
-        name: status
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Count of votes
-          schema:
-            allOf:
-            - $ref: '#/definitions/controller.jsonResponse'
-            - properties:
-                data:
-                  additionalProperties: true
-                  type: object
-              type: object
-      summary: Count votes by status
-      tags:
-      - Results
 swagger: "2.0"

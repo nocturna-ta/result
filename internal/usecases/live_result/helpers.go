@@ -1,4 +1,4 @@
-package fast_live_result
+package live_result
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-func (m *Module) buildElectionResultsResponse(liveResults []*model.LiveElectionResult, summary *model.ElectionSummary, cityRankings []*model.CityRanking, electionPairID string) *response.FastElectionResultsResponse {
-	response2 := &response.FastElectionResultsResponse{
+func (m *Module) buildElectionResultsResponse(liveResults []*model.LiveElectionResult, summary *model.ElectionSummary, cityRankings []*model.CityRanking, electionPairID string) *response.ElectionResultsResponse {
+	response2 := &response.ElectionResultsResponse{
 		ElectionID:    electionPairID,
 		RegionResults: make([]response.RegionResultSummary, 0, len(liveResults)),
 		TopCities:     make([]response.CityResultSummary, 0, len(cityRankings)),
@@ -62,8 +62,8 @@ func (m *Module) buildElectionResultsResponse(liveResults []*model.LiveElectionR
 	return response2
 }
 
-func (m *Module) buildCityResultsResponse(cityResults []*model.LiveCityResult, cityName string) *response.FastCityResultsResponse {
-	response2 := &response.FastCityResultsResponse{
+func (m *Module) buildCityResultsResponse(cityResults []*model.LiveCityResult, cityName string) *response.CityResultsResponse {
+	response2 := &response.CityResultsResponse{
 		CityName:        cityName,
 		ElectionResults: make([]response.CityElectionResult, 0, len(cityResults)),
 		LastUpdated:     time.Now(),
@@ -108,8 +108,8 @@ func (m *Module) buildCityResultsResponse(cityResults []*model.LiveCityResult, c
 	return response2
 }
 
-func (m *Module) buildCityRankingsResponse(rankings []*model.CityRanking, electionPairID string) *response.FastCityRankingsResponse {
-	response2 := &response.FastCityRankingsResponse{
+func (m *Module) buildCityRankingsResponse(rankings []*model.CityRanking, electionPairID string) *response.CityRankingsResponse {
+	response2 := &response.CityRankingsResponse{
 		ElectionID:  electionPairID,
 		Rankings:    make([]response.CityRankingItem, 0, len(rankings)),
 		LastUpdated: time.Now(),
@@ -134,7 +134,7 @@ func (m *Module) buildCityRankingsResponse(rankings []*model.CityRanking, electi
 }
 
 // Cache helper methods (run asynchronously)
-func (m *Module) cacheElectionResults(ctx context.Context, key string, result *response.FastElectionResultsResponse) {
+func (m *Module) cacheElectionResults(ctx context.Context, key string, result *response.ElectionResultsResponse) {
 	if err := m.redisCache.Set(ctx, key, result, DefaultCacheTTL); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
@@ -143,7 +143,7 @@ func (m *Module) cacheElectionResults(ctx context.Context, key string, result *r
 	}
 }
 
-func (m *Module) cacheCityResults(ctx context.Context, key string, result *response.FastCityResultsResponse) {
+func (m *Module) cacheCityResults(ctx context.Context, key string, result *response.CityResultsResponse) {
 	if err := m.redisCache.Set(ctx, key, result, DefaultCacheTTL); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
@@ -152,7 +152,7 @@ func (m *Module) cacheCityResults(ctx context.Context, key string, result *respo
 	}
 }
 
-func (m *Module) cacheElectionSummary(ctx context.Context, key string, result *response.FastElectionSummaryResponse) {
+func (m *Module) cacheElectionSummary(ctx context.Context, key string, result *response.ElectionSummaryResponse) {
 	if err := m.redisCache.Set(ctx, key, result, SummaryCacheTTL); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
@@ -161,7 +161,7 @@ func (m *Module) cacheElectionSummary(ctx context.Context, key string, result *r
 	}
 }
 
-func (m *Module) cacheCityRankings(ctx context.Context, key string, result *response.FastCityRankingsResponse) {
+func (m *Module) cacheCityRankings(ctx context.Context, key string, result *response.CityRankingsResponse) {
 	if err := m.redisCache.Set(ctx, key, result, DefaultCacheTTL); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,
@@ -170,7 +170,7 @@ func (m *Module) cacheCityRankings(ctx context.Context, key string, result *resp
 	}
 }
 
-func (m *Module) cacheAllElections(ctx context.Context, key string, result *response.FastAllElectionsSummaryResponse) {
+func (m *Module) cacheAllElections(ctx context.Context, key string, result *response.AllElectionsSummaryResponse) {
 	if err := m.redisCache.Set(ctx, key, result, AllElectionsCacheTTL); err != nil {
 		log.WithFields(log.Fields{
 			"error": err,

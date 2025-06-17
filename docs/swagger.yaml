@@ -17,6 +17,93 @@ definitions:
       message:
         type: string
     type: object
+  response.CacheStatisticsResponse:
+    properties:
+      active_elections:
+        items:
+          type: string
+        type: array
+      cache_size:
+        type: string
+      connected_clients:
+        type: integer
+      hit_rate:
+        type: number
+      last_cache_refresh:
+        type: string
+      redis_info:
+        additionalProperties: true
+        type: object
+      total_hits:
+        type: integer
+      total_misses:
+        type: integer
+    type: object
+  response.CityElectionResult:
+    properties:
+      city_rank:
+        type: integer
+      election_pair_id:
+        type: string
+      percentage:
+        type: number
+      vote_success_rate:
+        type: number
+      votes:
+        type: integer
+    type: object
+  response.CityRankingItem:
+    properties:
+      city_name:
+        type: string
+      city_rank:
+        type: integer
+      confirmed_votes:
+        type: integer
+      participation_rate:
+        type: number
+      unique_voters:
+        type: integer
+    type: object
+  response.CityResultSummary:
+    properties:
+      city:
+        type: string
+      percentage:
+        type: number
+      rank:
+        type: integer
+      voters:
+        type: integer
+      votes:
+        type: integer
+    type: object
+  response.CityStatistics:
+    properties:
+      avg_votes_per_election:
+        type: number
+      leading_election:
+        type: string
+      participation_rate:
+        type: number
+      total_elections:
+        type: integer
+    type: object
+  response.ElectionStatsSummary:
+    properties:
+      active_regions:
+        type: integer
+      completion_rate:
+        type: number
+      success_rate:
+        type: number
+      total_regions:
+        type: integer
+      total_voters:
+        type: integer
+      votes_per_second:
+        type: number
+    type: object
   response.ElectionVoteResultResponse:
     properties:
       confirmed_votes:
@@ -32,6 +119,94 @@ definitions:
       region:
         type: string
       total_votes:
+        type: integer
+    type: object
+  response.FastAllElectionsSummaryResponse:
+    properties:
+      elections:
+        items:
+          $ref: '#/definitions/response.FastElectionSummaryResponse'
+        type: array
+      last_updated:
+        type: string
+      total_elections:
+        type: integer
+    type: object
+  response.FastCityRankingsResponse:
+    properties:
+      election_id:
+        type: string
+      last_updated:
+        type: string
+      rankings:
+        items:
+          $ref: '#/definitions/response.CityRankingItem'
+        type: array
+      total_cities:
+        type: integer
+    type: object
+  response.FastCityResultsResponse:
+    properties:
+      city_name:
+        type: string
+      city_stats:
+        $ref: '#/definitions/response.CityStatistics'
+      election_results:
+        items:
+          $ref: '#/definitions/response.CityElectionResult'
+        type: array
+      last_updated:
+        type: string
+      total_voters:
+        type: integer
+      total_votes:
+        type: integer
+    type: object
+  response.FastElectionResultsResponse:
+    properties:
+      election_id:
+        type: string
+      last_updated:
+        type: string
+      overall_percentage:
+        type: number
+      regions:
+        items:
+          $ref: '#/definitions/response.RegionResultSummary'
+        type: array
+      stats:
+        $ref: '#/definitions/response.ElectionStatsSummary'
+      top_cities:
+        items:
+          $ref: '#/definitions/response.CityResultSummary'
+        type: array
+      total_voters:
+        type: integer
+      total_votes:
+        type: integer
+    type: object
+  response.FastElectionSummaryResponse:
+    properties:
+      election_id:
+        type: string
+      last_updated:
+        type: string
+      overall_success_rate:
+        type: number
+      total_confirmed_votes:
+        type: integer
+      total_regions:
+        type: integer
+      total_unique_voters:
+        type: integer
+    type: object
+  response.RegionResultSummary:
+    properties:
+      percentage:
+        type: number
+      region:
+        type: string
+      votes:
         type: integer
     type: object
   response.RegionVoteResultResponse:
@@ -128,6 +303,129 @@ paths:
       summary: Ping
       tags:
       - Health
+  /v1/admin/broadcast/live-results:
+    post:
+      consumes:
+      - application/json
+      description: Manually trigger a broadcast of live results for testing or manual
+        refresh (admin only)
+      parameters:
+      - description: Election Pair ID to broadcast
+        in: query
+        name: election_pair_id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Broadcast triggered
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.jsonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+      summary: Trigger live results broadcast
+      tags:
+      - Fast Live Results Admin
+  /v1/admin/cache/invalidate/all:
+    post:
+      consumes:
+      - application/json
+      description: Invalidate all live results cache entries (admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: All cache invalidated
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.jsonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+      summary: Invalidate all cache
+      tags:
+      - Fast Live Results Admin
+  /v1/admin/cache/invalidate/city/{city_name}:
+    post:
+      consumes:
+      - application/json
+      description: Invalidate cache entries for a specific city (admin only)
+      parameters:
+      - description: City Name
+        in: path
+        name: city_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cache invalidated
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.jsonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+      summary: Invalidate city cache
+      tags:
+      - Fast Live Results Admin
+  /v1/admin/cache/invalidate/election/{election_pair_id}:
+    post:
+      consumes:
+      - application/json
+      description: Invalidate all cache entries related to a specific election (admin
+        only)
+      parameters:
+      - description: Election Pair ID
+        in: path
+        name: election_pair_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cache invalidated
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.jsonResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+      summary: Invalidate election cache
+      tags:
+      - Fast Live Results Admin
+  /v1/admin/cache/statistics:
+    get:
+      consumes:
+      - application/json
+      description: Get performance statistics for the live results cache (admin only)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Cache statistics
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.jsonResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.CacheStatisticsResponse'
+              type: object
+      summary: Get cache statistics
+      tags:
+      - Fast Live Results Admin
   /v1/live/broadcast:
     post:
       consumes:
@@ -164,6 +462,156 @@ paths:
       summary: Trigger manual broadcast
       tags:
       - Live Results
+  /v1/live/cities/{city_name}:
+    get:
+      consumes:
+      - application/json
+      description: Get real-time city voting results optimized for high performance
+        using materialized views and Redis cache
+      parameters:
+      - description: City Name
+        in: path
+        name: city_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Fast live city results
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.jsonResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.FastCityResultsResponse'
+              type: object
+      summary: Get fast live city results
+      tags:
+      - Fast Live Results
+  /v1/live/elections:
+    get:
+      consumes:
+      - application/json
+      description: Get real-time summaries for all active elections optimized for
+        dashboards using materialized views and Redis cache
+      parameters:
+      - default: 20
+        description: Limit number of elections returned
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Fast election summaries
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.jsonResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.FastAllElectionsSummaryResponse'
+              type: object
+      summary: Get fast summaries for all elections
+      tags:
+      - Fast Live Results
+  /v1/live/elections/{election_pair_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get real-time election results with percentages optimized for high
+        performance using materialized views and Redis cache
+      parameters:
+      - description: Election Pair ID
+        in: path
+        name: election_pair_id
+        required: true
+        type: string
+      - default: true
+        description: Include top cities data
+        in: query
+        name: include_cities
+        type: boolean
+      - default: 10
+        description: Limit number of cities returned
+        in: query
+        name: cities_limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Fast live election results
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.jsonResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.FastElectionResultsResponse'
+              type: object
+      summary: Get fast live election results with percentages
+      tags:
+      - Fast Live Results
+  /v1/live/elections/{election_pair_id}/summary:
+    get:
+      consumes:
+      - application/json
+      description: Get real-time summary for a specific election optimized for high
+        performance using materialized views and Redis cache
+      parameters:
+      - description: Election Pair ID
+        in: path
+        name: election_pair_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Fast election summary
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.jsonResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.FastElectionSummaryResponse'
+              type: object
+      summary: Get fast election summary
+      tags:
+      - Fast Live Results
+  /v1/live/rankings/{election_pair_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get real-time city rankings for a specific election optimized for
+        high performance using materialized views and Redis cache
+      parameters:
+      - description: Election Pair ID
+        in: path
+        name: election_pair_id
+        required: true
+        type: string
+      - default: 20
+        description: Limit number of cities returned
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Fast city rankings
+          schema:
+            allOf:
+            - $ref: '#/definitions/controller.jsonResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/response.FastCityRankingsResponse'
+              type: object
+      summary: Get fast city rankings for an election
+      tags:
+      - Fast Live Results
   /v1/live/status:
     get:
       consumes:

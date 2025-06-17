@@ -58,6 +58,211 @@
                 }
             }
         },
+        "/v1/admin/broadcast/live-results": {
+            "post": {
+                "description": "Manually trigger a broadcast of live results for testing or manual refresh (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fast Live Results Admin"
+                ],
+                "summary": "Trigger live results broadcast",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Election Pair ID to broadcast",
+                        "name": "election_pair_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Broadcast triggered",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/cache/invalidate/all": {
+            "post": {
+                "description": "Invalidate all live results cache entries (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fast Live Results Admin"
+                ],
+                "summary": "Invalidate all cache",
+                "responses": {
+                    "200": {
+                        "description": "All cache invalidated",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/cache/invalidate/city/{city_name}": {
+            "post": {
+                "description": "Invalidate cache entries for a specific city (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fast Live Results Admin"
+                ],
+                "summary": "Invalidate city cache",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "City Name",
+                        "name": "city_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cache invalidated",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/cache/invalidate/election/{election_pair_id}": {
+            "post": {
+                "description": "Invalidate all cache entries related to a specific election (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fast Live Results Admin"
+                ],
+                "summary": "Invalidate election cache",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Election Pair ID",
+                        "name": "election_pair_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cache invalidated",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/cache/statistics": {
+            "get": {
+                "description": "Get performance statistics for the live results cache (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fast Live Results Admin"
+                ],
+                "summary": "Get cache statistics",
+                "responses": {
+                    "200": {
+                        "description": "Cache statistics",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.CacheStatisticsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/v1/live/broadcast": {
             "post": {
                 "description": "Manually trigger a broadcast of current results (for testing/admin purposes)",
@@ -106,6 +311,247 @@
                                         "data": {
                                             "type": "object",
                                             "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/live/cities/{city_name}": {
+            "get": {
+                "description": "Get real-time city voting results optimized for high performance using materialized views and Redis cache",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fast Live Results"
+                ],
+                "summary": "Get fast live city results",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "City Name",
+                        "name": "city_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fast live city results",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.FastCityResultsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/live/elections": {
+            "get": {
+                "description": "Get real-time summaries for all active elections optimized for dashboards using materialized views and Redis cache",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fast Live Results"
+                ],
+                "summary": "Get fast summaries for all elections",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Limit number of elections returned",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fast election summaries",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.FastAllElectionsSummaryResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/live/elections/{election_pair_id}": {
+            "get": {
+                "description": "Get real-time election results with percentages optimized for high performance using materialized views and Redis cache",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fast Live Results"
+                ],
+                "summary": "Get fast live election results with percentages",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Election Pair ID",
+                        "name": "election_pair_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Include top cities data",
+                        "name": "include_cities",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Limit number of cities returned",
+                        "name": "cities_limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fast live election results",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.FastElectionResultsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/live/elections/{election_pair_id}/summary": {
+            "get": {
+                "description": "Get real-time summary for a specific election optimized for high performance using materialized views and Redis cache",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fast Live Results"
+                ],
+                "summary": "Get fast election summary",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Election Pair ID",
+                        "name": "election_pair_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fast election summary",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.FastElectionSummaryResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/live/rankings/{election_pair_id}": {
+            "get": {
+                "description": "Get real-time city rankings for a specific election optimized for high performance using materialized views and Redis cache",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Fast Live Results"
+                ],
+                "summary": "Get fast city rankings for an election",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Election Pair ID",
+                        "name": "election_pair_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Limit number of cities returned",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fast city rankings",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.FastCityRankingsResponse"
                                         }
                                     }
                                 }
@@ -841,6 +1287,139 @@
                 }
             }
         },
+        "response.CacheStatisticsResponse": {
+            "type": "object",
+            "properties": {
+                "active_elections": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "cache_size": {
+                    "type": "string"
+                },
+                "connected_clients": {
+                    "type": "integer"
+                },
+                "hit_rate": {
+                    "type": "number"
+                },
+                "last_cache_refresh": {
+                    "type": "string"
+                },
+                "redis_info": {
+                    "type": "object",
+                    "additionalProperties": true
+                },
+                "total_hits": {
+                    "type": "integer"
+                },
+                "total_misses": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.CityElectionResult": {
+            "type": "object",
+            "properties": {
+                "city_rank": {
+                    "type": "integer"
+                },
+                "election_pair_id": {
+                    "type": "string"
+                },
+                "percentage": {
+                    "type": "number"
+                },
+                "vote_success_rate": {
+                    "type": "number"
+                },
+                "votes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.CityRankingItem": {
+            "type": "object",
+            "properties": {
+                "city_name": {
+                    "type": "string"
+                },
+                "city_rank": {
+                    "type": "integer"
+                },
+                "confirmed_votes": {
+                    "type": "integer"
+                },
+                "participation_rate": {
+                    "type": "number"
+                },
+                "unique_voters": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.CityResultSummary": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string"
+                },
+                "percentage": {
+                    "type": "number"
+                },
+                "rank": {
+                    "type": "integer"
+                },
+                "voters": {
+                    "type": "integer"
+                },
+                "votes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.CityStatistics": {
+            "type": "object",
+            "properties": {
+                "avg_votes_per_election": {
+                    "type": "number"
+                },
+                "leading_election": {
+                    "type": "string"
+                },
+                "participation_rate": {
+                    "type": "number"
+                },
+                "total_elections": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.ElectionStatsSummary": {
+            "type": "object",
+            "properties": {
+                "active_regions": {
+                    "type": "integer"
+                },
+                "completion_rate": {
+                    "type": "number"
+                },
+                "success_rate": {
+                    "type": "number"
+                },
+                "total_regions": {
+                    "type": "integer"
+                },
+                "total_voters": {
+                    "type": "integer"
+                },
+                "votes_per_second": {
+                    "type": "number"
+                }
+            }
+        },
         "response.ElectionVoteResultResponse": {
             "type": "object",
             "properties": {
@@ -863,6 +1442,141 @@
                     "type": "string"
                 },
                 "total_votes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.FastAllElectionsSummaryResponse": {
+            "type": "object",
+            "properties": {
+                "elections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.FastElectionSummaryResponse"
+                    }
+                },
+                "last_updated": {
+                    "type": "string"
+                },
+                "total_elections": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.FastCityRankingsResponse": {
+            "type": "object",
+            "properties": {
+                "election_id": {
+                    "type": "string"
+                },
+                "last_updated": {
+                    "type": "string"
+                },
+                "rankings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.CityRankingItem"
+                    }
+                },
+                "total_cities": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.FastCityResultsResponse": {
+            "type": "object",
+            "properties": {
+                "city_name": {
+                    "type": "string"
+                },
+                "city_stats": {
+                    "$ref": "#/definitions/response.CityStatistics"
+                },
+                "election_results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.CityElectionResult"
+                    }
+                },
+                "last_updated": {
+                    "type": "string"
+                },
+                "total_voters": {
+                    "type": "integer"
+                },
+                "total_votes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.FastElectionResultsResponse": {
+            "type": "object",
+            "properties": {
+                "election_id": {
+                    "type": "string"
+                },
+                "last_updated": {
+                    "type": "string"
+                },
+                "overall_percentage": {
+                    "type": "number"
+                },
+                "regions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.RegionResultSummary"
+                    }
+                },
+                "stats": {
+                    "$ref": "#/definitions/response.ElectionStatsSummary"
+                },
+                "top_cities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.CityResultSummary"
+                    }
+                },
+                "total_voters": {
+                    "type": "integer"
+                },
+                "total_votes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.FastElectionSummaryResponse": {
+            "type": "object",
+            "properties": {
+                "election_id": {
+                    "type": "string"
+                },
+                "last_updated": {
+                    "type": "string"
+                },
+                "overall_success_rate": {
+                    "type": "number"
+                },
+                "total_confirmed_votes": {
+                    "type": "integer"
+                },
+                "total_regions": {
+                    "type": "integer"
+                },
+                "total_unique_voters": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.RegionResultSummary": {
+            "type": "object",
+            "properties": {
+                "percentage": {
+                    "type": "number"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "votes": {
                     "type": "integer"
                 }
             }

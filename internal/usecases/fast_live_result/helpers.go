@@ -77,8 +77,8 @@ func (m *Module) buildCityResultsResponse(cityResults []*model.LiveCityResult, c
 		response2.ElectionResults = append(response2.ElectionResults, response.CityElectionResult{
 			ElectionPairID:  result.ElectionPairID,
 			Votes:           result.ConfirmedVotes,
-			Percentage:      result.CandidatePercentageInCity,
-			VoteSuccessRate: result.VoteSuccessRate,
+			Percentage:      result.GetCandidatePercentageInCity(),
+			VoteSuccessRate: result.GetVoteSuccessRate(),
 		})
 
 		totalVoters += result.TotalUniqueVoters

@@ -67,7 +67,6 @@ func (m *Module) GetLiveElectionResultsWithCache(ctx context.Context, electionPa
 			"election_pair_id": electionPairID,
 			"error":            err,
 		}).ErrorWithCtx(ctx, "[GetLiveElectionResultsWithCache] Failed to get election summary")
-		return nil, err
 	}
 
 	cityRankings, err := m.liveResultRepo.GetCityRankings(ctx, electionPairID, 10)
@@ -76,7 +75,6 @@ func (m *Module) GetLiveElectionResultsWithCache(ctx context.Context, electionPa
 			"election_pair_id": electionPairID,
 			"error":            err,
 		}).ErrorWithCtx(ctx, "[GetLiveElectionResultsWithCache] Failed to get city rankings")
-		return nil, err
 	}
 
 	response2 := m.buildElectionResultsResponse(liveResults, summary, cityRankings, electionPairID)
@@ -160,7 +158,6 @@ func (m *Module) GetElectionSummaryWithCache(ctx context.Context, electionPairID
 			"election_pair_id": electionPairID,
 			"error":            err,
 		}).ErrorWithCtx(ctx, "[GetElectionSummaryWithCache] Failed to get election summary")
-		return nil, err
 	}
 
 	response2 := &response.FastElectionSummaryResponse{

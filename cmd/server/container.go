@@ -17,10 +17,11 @@ import (
 )
 
 type container struct {
-	Cfg          config.MainConfig
-	VoteResultUc usecases.VoteResultUseCases
-	LiveResultUc usecases.LiveResultUsecases
-	WebSocketHub *websocket.Hub
+	Cfg              config.MainConfig
+	VoteResultUc     usecases.VoteResultUseCases
+	LiveResultUc     usecases.LiveResultUsecases
+	FastLiveResultUc usecases.FastLiveResultUseCases
+	WebSocketHub     *websocket.Hub
 }
 
 type options struct {
@@ -63,7 +64,7 @@ func newContainer(opts *options) *container {
 	go liveResultUc.StartPeriodicBroadcast(opts.Ctx, 30*time.Second)
 
 	activeElections := []string{
-		"election-1", "election-2", "election-3",
+		"a1234567-bb0b-4103-84f5-edd74e6e1234", "b2345678-bb0b-4103-84f5-edd74e6e2345", "c976902f-bb0b-4103-84f5-edd74e6e928f",
 	}
 
 	fastLiveResultUc.StartCacheWarming(opts.Ctx, activeElections)
@@ -71,9 +72,10 @@ func newContainer(opts *options) *container {
 	fastLiveResultUc.StartIncrementalBroadcast(opts.Ctx, 5*time.Second)
 
 	return &container{
-		Cfg:          *opts.Cfg,
-		VoteResultUc: voteResultUc,
-		LiveResultUc: liveResultUc,
-		WebSocketHub: wsHub,
+		Cfg:              *opts.Cfg,
+		VoteResultUc:     voteResultUc,
+		LiveResultUc:     liveResultUc,
+		FastLiveResultUc: fastLiveResultUc,
+		WebSocketHub:     wsHub,
 	}
 }

@@ -26,10 +26,10 @@ func NewLiveResultRepository(opts *OptsLiveResultRepository) repository.LiveResu
 }
 
 const (
-	selectLiveElectionResults = `SELECT %s FROM live_election_results_mv %s WHERE %s`
-	selectLiveCityResults     = `SELECT %s FROM live_city_results_mv %s WHERE %s`
-	selectElectionSummary     = `SELECT %s FROM election_summary_mv %s WHERE %s`
-	selectCityRankings        = `SELECT %s FROM city_rankings_mv %s WHERE %s`
+	selectLiveElectionResults = `SELECT %s FROM live_election_results_mv %s WHERE TRUE %s`
+	selectLiveCityResults     = `SELECT %s FROM live_city_results_mv %s WHERE TRUE %s`
+	selectElectionSummary     = `SELECT %s FROM election_summary_mv %s WHERE TRUE %s`
+	selectCityRankings        = `SELECT %s FROM city_ranking_mv %s WHERE TRUE %s`
 )
 
 func (l *LiveResultRepository) GetLiveElectionResults(ctx context.Context, electionPairID string) ([]*model.LiveElectionResult, error) {
@@ -43,9 +43,8 @@ func (l *LiveResultRepository) GetLiveElectionResults(ctx context.Context, elect
 	)
 
 	sqlTrx := utils.GetSqlTx(ctx)
-
 	selectQuery := "election_pair_id, region, confirmed_votes, total_votes, success_percentage, last_updated"
-	whereQuery := "election_pair_id = ? ORDER BY confirmed_votes DESC"
+	whereQuery := " AND election_pair_id = ? ORDER BY confirmed_votes DESC"
 
 	args = append(args, electionPairID)
 
@@ -80,7 +79,7 @@ func (l *LiveResultRepository) GetLiveCityResults(ctx context.Context, cityName 
 	sqlTrx := utils.GetSqlTx(ctx)
 
 	selectQuery := "city_name, election_pair_id, confirmed_votes, vote_success_rate, candidate_percentage_in_city, last_updated"
-	whereQuery := "city_name = ? ORDER BY confirmed_votes DESC"
+	whereQuery := " AND city_name = ? ORDER BY confirmed_votes DESC"
 	args = append(args, cityName)
 	query := fmt.Sprintf(selectLiveCityResults, selectQuery, "", whereQuery)
 
@@ -106,15 +105,15 @@ func (l *LiveResultRepository) GetElectionSummary(ctx context.Context, electionP
 	defer span.End()
 
 	var (
-		summary *model.ElectionSummary
+		summary model.ElectionSummary
 		err     error
 		args    []any
 	)
 
 	sqlTrx := utils.GetSqlTx(ctx)
 
-	selectQuery := "election_pair_id, total_unique_voters, total_regions, total_confirmed_votes, overallsuccess_rate, last_updated"
-	whereQuery := "election_pair_id = ?"
+	selectQuery := "election_pair_id, total_unique_voters, total_regions, total_confirmed_votes, overall_success_rate, last_updated"
+	whereQuery := " AND election_pair_id = ?"
 
 	args = append(args, electionPairID)
 	query := fmt.Sprintf(selectElectionSummary, selectQuery, "", whereQuery)
@@ -133,7 +132,7 @@ func (l *LiveResultRepository) GetElectionSummary(ctx context.Context, electionP
 		return nil, err
 	}
 
-	return summary, nil
+	return &summary, nil
 }
 
 func (l *LiveResultRepository) GetCityRankings(ctx context.Context, electionPairID string, limit int) ([]*model.CityRanking, error) {
@@ -152,7 +151,7 @@ func (l *LiveResultRepository) GetCityRankings(ctx context.Context, electionPair
 
 	sqlTrx := utils.GetSqlTx(ctx)
 	selectQuery := "election_pair_id, city_name, confirmed_votes, unique_voters, participation_rate, city_rank, last_updated"
-	whereQuery := "election_pair_id = ? ORDER BY city_rank ASC LIMIT ?"
+	whereQuery := " AND election_pair_id = ? ORDER BY city_rank ASC LIMIT ?"
 
 	args = append(args, electionPairID, limit)
 
@@ -185,7 +184,7 @@ func (l *LiveResultRepository) GetAllElectionsSummary(ctx context.Context) ([]*m
 
 	sqlTrx := utils.GetSqlTx(ctx)
 	selectQuery := "election_pair_id, total_unique_voters, total_regions, total_confirmed_votes, overall_success_rate, last_updated"
-	whereQuery := "ORDER BY total_confirmed_votes DESC"
+	whereQuery := " ORDER BY total_confirmed_votes DESC"
 
 	query := fmt.Sprintf(selectElectionSummary, selectQuery, "", whereQuery)
 	if sqlTrx != nil {
@@ -217,7 +216,7 @@ func (l *LiveResultRepository) GetLiveResultsByCityAndElection(ctx context.Conte
 	sqlTrx := utils.GetSqlTx(ctx)
 	selectQuery := "city_name, election_pair_id, total_unique_voters, confirmed_votes, vote_success_rate, candidate_percentage_in_city, last_updated"
 
-	whereQuery := "city_name = ? AND election_pair_id = ?"
+	whereQuery := " AND city_name = ? AND election_pair_id = ?"
 	args = append(args, cityName, electionPairID)
 
 	query := fmt.Sprintf(selectLiveCityResults, selectQuery, "", whereQuery)

@@ -105,15 +105,14 @@ func (api *API) RegisterRoute() *router.FastRouter {
 		v1.Group("/live", func(live *router.FastRouter) {
 
 			live.GET("/elections/:election_pair_id", api.GetFastLiveElectionResults, router.MustAuthorized(false))
+			live.GET("/elections/:election_pair_id/summary", api.GetFastElectionSummary, router.MustAuthorized(false))
 			live.GET("/cities/:city_name", api.GetFastCityResults, router.MustAuthorized(false))
 			live.GET("/elections", api.GetFastElectionSummaries, router.MustAuthorized(false))
 			live.GET("/rankings/:election_pair_id", api.GetFastCityRankings, router.MustAuthorized(false))
 
-			// REST endpoints for live results management
 			live.GET("/status", api.wsController.GetLiveResultsStatus, router.MustAuthorized(false))
 			live.POST("/broadcast", api.wsController.TriggerBroadcast, router.MustAuthorized(false))
 
-			// WebSocket endpoint - requires special handling
 			live.Use("/ws", api.wsController.WebSocketMiddleware())
 			live.CustomHandler("GET", "/ws", api.wsController.HandleWebSocket, router.MustAuthorized(false))
 		})

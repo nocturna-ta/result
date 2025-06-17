@@ -21,7 +21,7 @@ import (
 // @Param include_cities query bool false "Include top cities data" default(true)
 // @Param cities_limit query int false "Limit number of cities returned" default(10)
 // @Success 200 {object} jsonResponse{data=response.FastElectionResultsResponse} "Fast live election results"
-// @Router /v1/live/elections/{election_pair_id}/fast [get]
+// @Router /v1/live/elections/{election_pair_id} [get]
 func (api *API) GetFastLiveElectionResults(ctx context.Context, req *router.Request) (*rest.JSONResponse, error) {
 	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultController.GetFastLiveElectionResults")
 	defer span.End()
@@ -51,7 +51,7 @@ func (api *API) GetFastLiveElectionResults(ctx context.Context, req *router.Requ
 // @Produce json
 // @Param city_name path string true "City Name"
 // @Success 200 {object} jsonResponse{data=response.FastCityResultsResponse} "Fast live city results"
-// @Router /v1/live/cities/{city_name}/fast [get]
+// @Router /v1/live/cities/{city_name} [get]
 func (api *API) GetFastCityResults(ctx context.Context, req *router.Request) (*rest.JSONResponse, error) {
 	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultController.GetFastCityResults")
 	defer span.End()
@@ -89,7 +89,7 @@ func (api *API) GetFastCityResults(ctx context.Context, req *router.Request) (*r
 // @Produce json
 // @Param limit query int false "Limit number of elections returned" default(20)
 // @Success 200 {object} jsonResponse{data=response.FastAllElectionsSummaryResponse} "Fast election summaries"
-// @Router /v1/live/elections/fast [get]
+// @Router /v1/live/elections [get]
 func (api *API) GetFastElectionSummaries(ctx context.Context, req *router.Request) (*rest.JSONResponse, error) {
 	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultController.GetFastElectionSummaries")
 	defer span.End()

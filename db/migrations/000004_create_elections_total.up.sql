@@ -1,7 +1,8 @@
+
+
 CREATE MATERIALIZED VIEW election_summary_mv
-ENGINE = ReplacingMergeTree(updated_at)
-PARTITION BY toYYYYMM(last_updated)
-ORDER BY election_pair_id
+REFRESH EVERY 1 MINUTE
+TO election_summary
 AS SELECT
               election_pair_id,
               uniq(voter_id) as total_unique_voters,

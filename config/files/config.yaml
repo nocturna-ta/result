@@ -51,7 +51,7 @@ GrpcServer:
   Port: 35001
 
 RedisConfig:
-  Connection: "redis://:@localhost:6379/result:"
+  Connection: "redis://:@localhost:6379"
 
 Cors:
   AllowOrigins: "*"

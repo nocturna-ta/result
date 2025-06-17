@@ -1,7 +1,6 @@
 CREATE MATERIALIZED VIEW live_election_results_mv
-ENGINE = ReplacingMergeTree(updated_at)
-PARTITION BY toYYYYMM(last_updated)
-ORDER BY (election_pair_id, region)
+REFRESH EVERY 1 MINUTE
+TO live_election_results
 AS SELECT
               election_pair_id,
               region,

@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 type LiveElectionResult struct {
 	ElectionPairID    string    `db:"election_pair_id"`
@@ -12,13 +15,13 @@ type LiveElectionResult struct {
 }
 
 type LiveCityResult struct {
-	CityName                  string    `db:"city_name"`
-	ElectionPairID            string    `db:"election_pair_id"`
-	TotalUniqueVoters         uint64    `db:"total_unique_voters"`
-	ConfirmedVotes            uint64    `db:"confirmed_votes"`
-	VoteSuccessRate           float64   `db:"vote_success_rate"`
-	CandidatePercentageInCity float64   `db:"candidate_percentage_in_city"`
-	LastUpdated               time.Time `db:"last_updated"`
+	CityName                  string          `db:"city_name"`
+	ElectionPairID            string          `db:"election_pair_id"`
+	TotalUniqueVoters         uint64          `db:"total_unique_voters"`
+	ConfirmedVotes            uint64          `db:"confirmed_votes"`
+	VoteSuccessRate           sql.NullFloat64 `db:"vote_success_rate"`
+	CandidatePercentageInCity sql.NullFloat64 `db:"candidate_percentage_in_city"`
+	LastUpdated               time.Time       `db:"last_updated"`
 }
 
 type ElectionSummary struct {
@@ -38,4 +41,18 @@ type CityRanking struct {
 	ParticipationRate float64   `db:"participation_rate"`
 	CityRank          uint32    `db:"city_rank"`
 	LastUpdated       time.Time `db:"last_updated"`
+}
+
+func (l *LiveCityResult) GetVoteSuccessRate() float64 {
+	if l.VoteSuccessRate.Valid {
+		return l.VoteSuccessRate.Float64
+	}
+	return 0.0
+}
+
+func (l *LiveCityResult) GetCandidatePercentageInCity() float64 {
+	if l.CandidatePercentageInCity.Valid {
+		return l.CandidatePercentageInCity.Float64
+	}
+	return 0.0
 }

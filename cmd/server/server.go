@@ -4,8 +4,8 @@ import (
 	"context"
 	_ "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/nocturna-ta/golib/cache"
+	_ "github.com/nocturna-ta/golib/cache/redis"
 	"github.com/nocturna-ta/golib/database/sql"
-
 	"github.com/nocturna-ta/golib/log"
 	"github.com/nocturna-ta/result/config"
 	"github.com/nocturna-ta/result/internal/handler/api"
@@ -68,10 +68,11 @@ func run(cmd *cobra.Command, args []string) error {
 	})
 
 	server := api.New(&api.Options{
-		Cfg:          appContainer.Cfg,
-		VoteResult:   appContainer.VoteResultUc,
-		LiveResult:   appContainer.LiveResultUc,
-		WebsocketHub: appContainer.WebSocketHub,
+		Cfg:              appContainer.Cfg,
+		VoteResult:       appContainer.VoteResultUc,
+		LiveResult:       appContainer.LiveResultUc,
+		FastLiveResultUc: appContainer.FastLiveResultUc,
+		WebsocketHub:     appContainer.WebSocketHub,
 	})
 
 	go server.Run()

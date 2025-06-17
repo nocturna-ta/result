@@ -7,7 +7,6 @@ import (
 	"github.com/nocturna-ta/golib/cache"
 	"github.com/nocturna-ta/golib/log"
 	"github.com/nocturna-ta/golib/tracing"
-	"github.com/nocturna-ta/result/internal/infrastructures/websocket"
 	"github.com/nocturna-ta/result/internal/usecases/response"
 	"strings"
 	"sync/atomic"
@@ -32,28 +31,14 @@ func (m *Module) BroadcastLiveResultsUpdate(ctx context.Context, electionPairID 
 		return err
 	}
 
-	// Create WebSocket message using their existing structure
-	message := &websocket.LiveMessage{
-		Type:      "fast_live_results_update", // New message type for fast results
-		Timestamp: time.Now(),
-		Data:      electionResults,
-		Filter: &websocket.MessageFilter{
-			ElectionPairID: electionPairID,
-		},
-	}
-
-	select {
-	case m.wsHub.Broadcast <- message:
-	default:
-		log.WarnWithCtx(ctx, "[FastLiveResultUseCase] Broadcast channel full, dropping live results update")
-	}
+	m.wsHub.BroadcastFastLiveResults(electionResults)
 
 	log.WithFields(log.Fields{
 		"election_id": electionPairID,
 		"clients":     m.wsHub.GetClientCount(),
 		"regions":     len(electionResults.RegionResults),
 		"cities":      len(electionResults.TopCities),
-	}).InfoWithCtx(ctx, "[FastLiveResultUseCase] Live results broadcasted")
+	}).InfoWithCtx(ctx, "[FastLiveResultUseCase] Fast live results broadcasted")
 
 	return nil
 }
@@ -66,31 +51,183 @@ func (m *Module) BroadcastIncrementalUpdate(ctx context.Context, updateData *res
 		return nil // No clients connected, skip broadcast
 	}
 
-	// Create incremental update message using their existing structure
-	message := &websocket.LiveMessage{
-		Type:      "fast_incremental_update", // New message type for incremental updates
-		Timestamp: updateData.Timestamp,
-		Data:      updateData,
-		Filter: &websocket.MessageFilter{
-			ElectionPairID: updateData.ElectionID,
-			Region:         updateData.Region,
-		},
-	}
-
-	// Send to broadcast channel (their existing pattern)
-	select {
-	case m.wsHub.Broadcast <- message:
-	default:
-		log.WarnWithCtx(ctx, "[FastLiveResultUseCase] Broadcast channel full, dropping incremental update")
-	}
-
 	log.WithFields(log.Fields{
 		"election_id": updateData.ElectionID,
 		"region":      updateData.Region,
 		"city_name":   updateData.CityName,
 		"new_votes":   updateData.NewVotes,
 		"clients":     m.wsHub.GetClientCount(),
-	}).InfoWithCtx(ctx, "[FastLiveResultUseCase] Incremental update broadcasted")
+	}).InfoWithCtx(ctx, "[FastLiveResultUseCase] Fast incremental update broadcasted")
+
+	return nil
+}
+
+func (m *Module) BroadcastCityResultsUpdate(ctx context.Context, cityName string) error {
+	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultUseCase.BroadcastCityResultsUpdate")
+	defer span.End()
+
+	if m.wsHub.GetClientCount() == 0 {
+		return nil // No clients connected, skip broadcast
+	}
+
+	cityResults, err := m.GetLiveCityResultsWithCache(ctx, cityName)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error":     err,
+			"city_name": cityName,
+		}).ErrorWithCtx(ctx, "[FastLiveResultUseCase] Failed to get city results for broadcast")
+		return err
+	}
+
+	m.wsHub.BroadcastFastCityResults(cityResults)
+
+	log.WithFields(log.Fields{
+		"city_name":      cityName,
+		"clients":        m.wsHub.GetClientCount(),
+		"total_votes":    cityResults.TotalVotes,
+		"total_voters":   cityResults.TotalVoters,
+		"election_count": len(cityResults.ElectionResults),
+	}).InfoWithCtx(ctx, "[FastLiveResultUseCase] Fast city results broadcasted")
+
+	return nil
+}
+
+func (m *Module) BroadcastRankingsUpdate(ctx context.Context, electionPairID string, limit int) error {
+	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultUseCase.BroadcastRankingsUpdate")
+	defer span.End()
+
+	if m.wsHub.GetClientCount() == 0 {
+		return nil // No clients connected, skip broadcast
+	}
+
+	// Get fresh rankings data from cache/database
+	rankings, err := m.GetCityRankingsWithCache(ctx, electionPairID, limit)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error":       err,
+			"election_id": electionPairID,
+			"limit":       limit,
+		}).ErrorWithCtx(ctx, "[FastLiveResultUseCase] Failed to get rankings for broadcast")
+		return err
+	}
+
+	// Use the Hub's dedicated method for rankings
+	m.wsHub.BroadcastFastRankings(rankings)
+
+	log.WithFields(log.Fields{
+		"election_id":  electionPairID,
+		"clients":      m.wsHub.GetClientCount(),
+		"total_cities": rankings.TotalCities,
+		"ranking_size": len(rankings.Rankings),
+	}).InfoWithCtx(ctx, "[FastLiveResultUseCase] Fast rankings broadcasted")
+
+	return nil
+}
+
+func (m *Module) BroadcastElectionSummaryUpdate(ctx context.Context, electionPairID string) error {
+	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultUseCase.BroadcastElectionSummaryUpdate")
+	defer span.End()
+
+	if m.wsHub.GetClientCount() == 0 {
+		return nil // No clients connected, skip broadcast
+	}
+
+	// Get fresh summary data from cache/database
+	summary, err := m.GetElectionSummaryWithCache(ctx, electionPairID)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error":       err,
+			"election_id": electionPairID,
+		}).ErrorWithCtx(ctx, "[FastLiveResultUseCase] Failed to get election summary for broadcast")
+		return err
+	}
+
+	// Use the Hub's dedicated method for election summary
+	m.wsHub.BroadcastFastElectionSummary(summary)
+
+	log.WithFields(log.Fields{
+		"election_id":           electionPairID,
+		"clients":               m.wsHub.GetClientCount(),
+		"total_unique_voters":   summary.TotalUniqueVoters,
+		"total_confirmed_votes": summary.TotalConfirmedVotes,
+		"overall_success_rate":  summary.OverallSuccessRate,
+	}).InfoWithCtx(ctx, "[FastLiveResultUseCase] Fast election summary broadcasted")
+
+	return nil
+}
+
+func (m *Module) BroadcastAllElectionsUpdate(ctx context.Context) error {
+	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultUseCase.BroadcastAllElectionsUpdate")
+	defer span.End()
+
+	if m.wsHub.GetClientCount() == 0 {
+		return nil // No clients connected, skip broadcast
+	}
+
+	// Get fresh all elections data from cache/database
+	allElections, err := m.GetAllElectionsSummaryWithCache(ctx)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).ErrorWithCtx(ctx, "[FastLiveResultUseCase] Failed to get all elections summary for broadcast")
+		return err
+	}
+
+	// Use the Hub's dedicated method for all elections
+	m.wsHub.BroadcastFastAllElections(allElections)
+
+	log.WithFields(log.Fields{
+		"clients":         m.wsHub.GetClientCount(),
+		"total_elections": allElections.TotalElections,
+		"election_count":  len(allElections.Elections),
+	}).InfoWithCtx(ctx, "[FastLiveResultUseCase] Fast all elections summary broadcasted")
+
+	return nil
+}
+
+func (m *Module) BroadcastBulkUpdate(ctx context.Context, electionPairID string) error {
+	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultUseCase.BroadcastBulkUpdate")
+	defer span.End()
+
+	if m.wsHub.GetClientCount() == 0 {
+		return nil // No clients connected, skip broadcast
+	}
+
+	var errors []error
+
+	// Broadcast live results update
+	if err := m.BroadcastLiveResultsUpdate(ctx, electionPairID); err != nil {
+		errors = append(errors, fmt.Errorf("live results: %w", err))
+	}
+
+	// Broadcast election summary
+	if err := m.BroadcastElectionSummaryUpdate(ctx, electionPairID); err != nil {
+		errors = append(errors, fmt.Errorf("election summary: %w", err))
+	}
+
+	// Broadcast rankings (top 100)
+	if err := m.BroadcastRankingsUpdate(ctx, electionPairID, 100); err != nil {
+		errors = append(errors, fmt.Errorf("rankings: %w", err))
+	}
+
+	// Broadcast all elections summary
+	if err := m.BroadcastAllElectionsUpdate(ctx); err != nil {
+		errors = append(errors, fmt.Errorf("all elections: %w", err))
+	}
+
+	if len(errors) > 0 {
+		var errorMessages []string
+		for _, err := range errors {
+			errorMessages = append(errorMessages, err.Error())
+		}
+		return fmt.Errorf("bulk broadcast errors: %s", strings.Join(errorMessages, "; "))
+	}
+
+	log.WithFields(log.Fields{
+		"election_id": electionPairID,
+		"clients":     m.wsHub.GetClientCount(),
+		"broadcasts":  4,
+	}).InfoWithCtx(ctx, "[FastLiveResultUseCase] Bulk broadcast completed successfully")
 
 	return nil
 }
@@ -116,14 +253,15 @@ func (m *Module) InvalidateElectionCache(ctx context.Context, electionPairID str
 				"error":       err,
 				"key":         key,
 				"election_id": electionPairID,
-			}).WarnWithCtx(ctx, "[FastLiveResultUseCase.InvalidateElectionCache] Failed to invalidate cache key")
+			}).WarnWithCtx(ctx, "[FastLiveResultUseCase] Failed to delete cache key")
 		}
-
-		log.WithFields(log.Fields{
-			"election_id":      electionPairID,
-			"invalidated_keys": len(keys),
-		}).InfoWithCtx(ctx, "[FastLiveResultUseCase.InvalidateElectionCache] Cache invalidated")
 	}
+
+	log.WithFields(log.Fields{
+		"election_id":  electionPairID,
+		"keys_deleted": len(keys),
+	}).InfoWithCtx(ctx, "[FastLiveResultUseCase] Election cache invalidated")
+
 	return nil
 }
 
@@ -132,14 +270,20 @@ func (m *Module) InvalidateCityCache(ctx context.Context, cityName string) error
 	defer span.End()
 
 	key := fmt.Sprintf(CacheKeyCityResults, cityName)
-
 	if err := m.redisCache.Delete(ctx, key); err != nil && !errors.Is(err, cache.ErrNotFound) {
 		log.WithFields(log.Fields{
 			"error":     err,
+			"key":       key,
 			"city_name": cityName,
-		}).WarnWithCtx(ctx, "[FastLiveResultUseCase.InvalidateCityCache] Failed to invalidate city cache key")
+		}).WarnWithCtx(ctx, "[FastLiveResultUseCase] Failed to delete city cache key")
 		return err
 	}
+
+	log.WithFields(log.Fields{
+		"city_name": cityName,
+		"key":       key,
+	}).InfoWithCtx(ctx, "[FastLiveResultUseCase] City cache invalidated")
+
 	return nil
 }
 
@@ -147,161 +291,158 @@ func (m *Module) InvalidateAllCache(ctx context.Context) error {
 	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultUseCases.InvalidateAllCache")
 	defer span.End()
 
-	patterns := []string{
-		"fast_live:election:*",
-		"fast_live:city:*",
-		"fast_live:summary:*",
-		"fast_live:rankings:*",
-	}
+	// Get all fast live result cache keys
+	pattern := "fast_live:*"
+	keys := m.redisCache.GetKeys(ctx, pattern)
 
-	// Also delete specific single keys
-	singleKeys := []string{
-		CacheKeyAllElections,
-		CacheKeyStatistics,
-	}
-
-	var totalKeys int
-
-	// Delete pattern-based keys
-	for _, pattern := range patterns {
-		keys := m.redisCache.GetKeys(ctx, pattern)
-		totalKeys += len(keys)
-
-		// Delete each key individually since golib cache doesn't have pattern delete
-		for _, key := range keys {
-			// Remove namespace prefix if present
-			cleanKey := key
-			if strings.HasPrefix(key, "fast_live:") {
-				cleanKey = strings.TrimPrefix(key, "fast_live:")
-			}
-
-			if err := m.redisCache.Delete(ctx, cleanKey); err != nil && err != cache.ErrNotFound {
-				log.WithFields(log.Fields{
-					"error": err,
-					"key":   cleanKey,
-				}).WarnWithCtx(ctx, "[FastLiveResultUseCase] Failed to invalidate cache key")
-			}
-		}
-	}
-
-	// Delete single keys
-	for _, key := range singleKeys {
-		if err := m.redisCache.Delete(ctx, key); err != nil && err != cache.ErrNotFound {
+	deletedCount := 0
+	for _, key := range keys {
+		if err := m.redisCache.Delete(ctx, key); err != nil && !errors.Is(err, cache.ErrNotFound) {
 			log.WithFields(log.Fields{
 				"error": err,
 				"key":   key,
-			}).WarnWithCtx(ctx, "[FastLiveResultUseCase] Failed to invalidate single cache key")
+			}).WarnWithCtx(ctx, "[FastLiveResultUseCase] Failed to delete cache key during bulk invalidation")
+		} else {
+			deletedCount++
 		}
-		totalKeys++
 	}
 
 	log.WithFields(log.Fields{
-		"invalidated_keys": totalKeys,
+		"keys_found":    len(keys),
+		"keys_deleted":  deletedCount,
+		"cache_pattern": pattern,
 	}).InfoWithCtx(ctx, "[FastLiveResultUseCase] All cache invalidated")
-
-	// Reset statistics
-	atomic.StoreUint64(&m.cacheStatistics.TotalHits, 0)
-	atomic.StoreUint64(&m.cacheStatistics.TotalMisses, 0)
 
 	return nil
 }
 
+// Cache warming and background tasks
 func (m *Module) StartCacheWarming(ctx context.Context, activeElections []string) {
 	go func() {
-		ticker := time.NewTicker(15 * time.Second) // Warm cache every 15 seconds
-		defer ticker.Stop()
+		span, warmCtx := tracing.StartSpanFromContext(ctx, "FastLiveResultUseCases.CacheWarming")
+		defer span.End()
 
-		log.WithFields(log.Fields{
-			"elections": len(activeElections),
-			"interval":  "15s",
-		}).InfoWithCtx(ctx, "[FastLiveResultUseCase] Starting cache warming service")
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
 
 		for {
 			select {
-			case <-ctx.Done():
-				log.InfoWithCtx(ctx, "[FastLiveResultUseCase] Cache warming service stopped")
+			case <-warmCtx.Done():
+				log.InfoWithCtx(warmCtx, "[FastLiveResultUseCase] Cache warming stopped")
 				return
 			case <-ticker.C:
-				m.warmCache(context.Background(), activeElections)
+				m.warmElectionCaches(warmCtx, activeElections)
 			}
 		}
 	}()
 }
 
+func (m *Module) warmElectionCaches(ctx context.Context, electionIDs []string) {
+	for _, electionID := range electionIDs {
+		// Warm election results cache
+		if _, err := m.GetLiveElectionResultsWithCache(ctx, electionID); err != nil {
+			log.WithFields(log.Fields{
+				"error":       err,
+				"election_id": electionID,
+			}).WarnWithCtx(ctx, "[FastLiveResultUseCase] Failed to warm election results cache")
+		}
+
+		// Warm election summary cache
+		if _, err := m.GetElectionSummaryWithCache(ctx, electionID); err != nil {
+			log.WithFields(log.Fields{
+				"error":       err,
+				"election_id": electionID,
+			}).WarnWithCtx(ctx, "[FastLiveResultUseCase] Failed to warm election summary cache")
+		}
+
+		// Warm rankings cache
+		if _, err := m.GetCityRankingsWithCache(ctx, electionID, 100); err != nil {
+			log.WithFields(log.Fields{
+				"error":       err,
+				"election_id": electionID,
+			}).WarnWithCtx(ctx, "[FastLiveResultUseCase] Failed to warm rankings cache")
+		}
+	}
+
+	// Warm all elections summary
+	if _, err := m.GetAllElectionsSummaryWithCache(ctx); err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).WarnWithCtx(ctx, "[FastLiveResultUseCase] Failed to warm all elections cache")
+	}
+
+	log.WithFields(log.Fields{
+		"elections_warmed": len(electionIDs),
+	}).InfoWithCtx(ctx, "[FastLiveResultUseCase] Cache warming cycle completed")
+}
+
 func (m *Module) StartIncrementalBroadcast(ctx context.Context, interval time.Duration) {
 	go func() {
+		span, broadcastCtx := tracing.StartSpanFromContext(ctx, "FastLiveResultUseCases.IncrementalBroadcast")
+		defer span.End()
+
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
-		log.WithFields(log.Fields{
-			"interval": interval,
-		}).InfoWithCtx(ctx, "[FastLiveResultUseCase] Starting incremental broadcast service")
-
 		for {
 			select {
-			case <-ctx.Done():
-				log.InfoWithCtx(ctx, "[FastLiveResultUseCase] Incremental broadcast service stopped")
+			case <-broadcastCtx.Done():
+				log.InfoWithCtx(broadcastCtx, "[FastLiveResultUseCase] Incremental broadcast stopped")
 				return
 			case <-ticker.C:
 				if m.wsHub.GetClientCount() > 0 {
-					// Get active elections from cache keys
-					electionKeys := m.redisCache.GetKeys(context.Background(), "fast_live:election:*")
-					for _, key := range electionKeys {
-						parts := strings.Split(key, ":")
-						if len(parts) >= 3 {
-							electionID := parts[2]
-							// Broadcast updates for each active election
-							m.BroadcastLiveResultsUpdate(context.Background(), electionID)
-						}
-					}
+					m.performIncrementalBroadcast(broadcastCtx)
 				}
 			}
 		}
 	}()
 }
 
-func (m *Module) GetCacheStatistics(ctx context.Context) (*response.CacheStatisticsResponse, error) {
-	span, ctx := tracing.StartSpanFromContext(ctx, "FastLiveResultUseCases.GetCacheStatistics")
-	defer span.End()
-
-	totalHits := atomic.LoadUint64(&m.cacheStatistics.TotalHits)
-	totalMisses := atomic.LoadUint64(&m.cacheStatistics.TotalMisses)
-
-	var hitRate float64
-	if totalHits+totalMisses > 0 {
-		hitRate = float64(totalHits) / float64(totalHits+totalMisses) * 100
+func (m *Module) performIncrementalBroadcast(ctx context.Context) {
+	// Get all active elections
+	allElections, err := m.GetAllElectionsSummaryWithCache(ctx)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).ErrorWithCtx(ctx, "[FastLiveResultUseCase] Failed to get elections for incremental broadcast")
+		return
 	}
 
-	// Get active elections by scanning cache keys
-	electionKeys := m.redisCache.GetKeys(ctx, "fast_live:election:*")
-	activeElections := make([]string, 0, len(electionKeys))
-	for _, key := range electionKeys {
-		// Extract election ID from key: fast_live:election:{election_id}
-		parts := strings.Split(key, ":")
-		if len(parts) >= 3 {
-			activeElections = append(activeElections, parts[2])
+	broadcastCount := int64(0)
+	for _, election := range allElections.Elections {
+		// Broadcast live results for each active election
+		if err := m.BroadcastLiveResultsUpdate(ctx, election.ElectionID); err != nil {
+			log.WithFields(log.Fields{
+				"error":       err,
+				"election_id": election.ElectionID,
+			}).WarnWithCtx(ctx, "[FastLiveResultUseCase] Failed incremental broadcast for election")
+		} else {
+			atomic.AddInt64(&broadcastCount, 1)
 		}
 	}
 
-	// Get Redis info
-	redisInfo := make(map[string]interface{})
-	// Note: This would need to be implemented based on your cache interface
-	// For now, we'll provide basic info
-	redisInfo["status"] = "connected"
-	redisInfo["cache_keys"] = len(electionKeys) + len(m.redisCache.GetKeys(ctx, "fast_live:*"))
+	// Broadcast all elections summary
+	if err := m.BroadcastAllElectionsUpdate(ctx); err != nil {
+		log.WithFields(log.Fields{
+			"error": err,
+		}).WarnWithCtx(ctx, "[FastLiveResultUseCase] Failed to broadcast all elections summary")
+	} else {
+		atomic.AddInt64(&broadcastCount, 1)
+	}
 
-	return &response.CacheStatisticsResponse{
-		HitRate:          hitRate,
-		TotalHits:        totalHits,
-		TotalMisses:      totalMisses,
-		CacheSize:        "N/A",
-		ConnectedClients: m.GetConnectedClientsCount(ctx),
-		LastCacheRefresh: time.Now(),
-		ActiveElections:  activeElections,
-		RedisInfo:        redisInfo,
-	}, nil
+	log.WithFields(log.Fields{
+		"clients":         m.wsHub.GetClientCount(),
+		"elections":       len(allElections.Elections),
+		"broadcasts_sent": broadcastCount,
+	}).InfoWithCtx(ctx, "[FastLiveResultUseCase] Incremental broadcast cycle completed")
+}
+
+func (m *Module) GetCacheStatistics(ctx context.Context) (*response.CacheStatisticsResponse, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (m *Module) GetConnectedClientsCount(ctx context.Context) int {
-	return m.wsHub.GetClientCount()
+	//TODO implement me
+	panic("implement me")
 }

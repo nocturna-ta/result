@@ -15,17 +15,20 @@ import (
 type WebSocketController struct {
 	handler           *websocket.Handler
 	liveResultService usecases.LiveResultUsecases
+	fastResultUc      usecases.FastLiveResultUseCases
 }
 
 type WebSocketControllerOptions struct {
 	Handler           *websocket.Handler
 	LiveResultService usecases.LiveResultUsecases
+	FastResultUc      usecases.FastLiveResultUseCases
 }
 
 func NewWebSocketController(opts *WebSocketControllerOptions) *WebSocketController {
 	return &WebSocketController{
 		handler:           opts.Handler,
 		liveResultService: opts.LiveResultService,
+		fastResultUc:      opts.FastResultUc,
 	}
 }
 
@@ -52,6 +55,10 @@ func (wsc *WebSocketController) GetLiveResultsStatus(ctx context.Context, req *r
 			"election",
 			"region",
 			"statistics",
+			"fast_live_results",
+			"fast_city",
+			"fast_rankings",
+			"fast_summary",
 		},
 		"message_types": []string{
 			"vote_update",
@@ -59,6 +66,11 @@ func (wsc *WebSocketController) GetLiveResultsStatus(ctx context.Context, req *r
 			"region_update",
 			"statistics_update",
 			"heartbeat",
+			"fast_live_results_update",
+			"fast_city_results_update",
+			"fast_rankings_update",
+			"fast_election_summary_update",
+			"fast_all_election_update",
 		},
 	}
 
@@ -112,6 +124,42 @@ func (wsc *WebSocketController) TriggerBroadcast(ctx context.Context, req *route
 			})
 		}
 		err = wsc.liveResultService.BroadcastRegionUpdate(ctx, region)
+	case "fast_live_results":
+		if electionPairID == "" {
+			return custresp.CustomErrorResponse(&custerr.ErrChain{
+				Message: "election_pair_id is required for fast live results broadcast",
+				Code:    400,
+			})
+		}
+		err = wsc.fastResultUc.BroadcastLiveResultsUpdate(ctx, electionPairID)
+
+	case "fast_city":
+		if region == "" {
+			return custresp.CustomErrorResponse(&custerr.ErrChain{
+				Message: "region is required for fast city results broadcast",
+				Code:    400,
+			})
+		}
+		err = wsc.fastResultUc.BroadcastCityResultsUpdate(ctx, region)
+
+	case "fast_rankings":
+		if electionPairID == "" {
+			return custresp.CustomErrorResponse(&custerr.ErrChain{
+				Message: "election_pair_id is required for fast rankings broadcast",
+				Code:    400,
+			})
+		}
+
+		err = wsc.fastResultUc.BroadcastRankingsUpdate(ctx, electionPairID, 10)
+
+	case "fast_summary":
+		if electionPairID == "" {
+			return custresp.CustomErrorResponse(&custerr.ErrChain{
+				Message: "election_pair_id is required for fast summary broadcast",
+				Code:    400,
+			})
+		}
+		err = wsc.fastResultUc.BroadcastElectionSummaryUpdate(ctx, electionPairID)
 	case "all":
 		err = wsc.liveResultService.BroadcastAllUpdates(ctx, electionPairID, region)
 	default:

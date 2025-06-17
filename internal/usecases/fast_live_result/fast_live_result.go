@@ -79,6 +79,8 @@ func (m *Module) GetLiveElectionResultsWithCache(ctx context.Context, electionPa
 
 	response2 := m.buildElectionResultsResponse(liveResults, summary, cityRankings, electionPairID)
 
+	m.wsHub.BroadcastFastLiveResults(response2)
+
 	go m.cacheElectionResults(context.Background(), cacheKey, response2)
 
 	log.WithFields(log.Fields{
@@ -169,6 +171,8 @@ func (m *Module) GetElectionSummaryWithCache(ctx context.Context, electionPairID
 		LastUpdated:         summary.LastUpdated,
 	}
 
+	m.wsHub.BroadcastFastElectionSummary(response2)
+
 	go m.cacheElectionSummary(context.Background(), cacheKey, response2)
 
 	return response2, nil
@@ -208,6 +212,8 @@ func (m *Module) GetCityRankingsWithCache(ctx context.Context, electionPairID st
 	}
 
 	response2 := m.buildCityRankingsResponse(rankings, electionPairID)
+
+	m.wsHub.BroadcastFastRankings(response2)
 
 	go m.cacheCityRankings(context.Background(), cacheKey, response2)
 

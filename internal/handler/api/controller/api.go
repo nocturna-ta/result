@@ -44,6 +44,7 @@ func New(opts *Options) *API {
 	wsController := NewWebSocketController(&WebSocketControllerOptions{
 		Handler:           wsHandler,
 		LiveResultService: opts.LiveResult,
+		FastResultUc:      opts.FastLiveResultUc,
 	})
 
 	return &API{

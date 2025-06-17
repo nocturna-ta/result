@@ -20,6 +20,13 @@ const (
 	MessageTypeHeartbeat      MessageType = "heartbeat"
 	MessageTypeSubscribe      MessageType = "subscribe"
 	MessageTypeUnsubscribe    MessageType = "unsubscribe"
+
+	MessageTypeFastLiveResults     MessageType = "fast_live_results_update"
+	MessageTypeFastIncremental     MessageType = "fast_incremental_update"
+	MessageTypeFastCityResults     MessageType = "fast_city_results_update"
+	MessageTypeFastRankings        MessageType = "fast_rankings_update"
+	MessageTypeFastElectionSummary MessageType = "fast_election_summary_update"
+	MessageTypeFastAllElections    MessageType = "fast_all_elections_update"
 )
 
 type SubscriptionType string
@@ -29,6 +36,11 @@ const (
 	SubscriptionElection   SubscriptionType = "election"
 	SubscriptionRegion     SubscriptionType = "region"
 	SubscriptionStatistics SubscriptionType = "statistics"
+
+	SubscriptionFastLiveResults SubscriptionType = "fast_live_results"
+	SubscriptionFastCity        SubscriptionType = "fast_city"
+	SubscriptionFastRankings    SubscriptionType = "fast_rankings"
+	SubscriptionFastSummary     SubscriptionType = "fast_summary"
 )
 
 type LiveMessage struct {
@@ -61,7 +73,7 @@ type Client struct {
 
 type Hub struct {
 	clients    map[string]*Client
-	Broadcast  chan *LiveMessage
+	broadcast  chan *LiveMessage
 	register   chan *Client
 	unregister chan *Client
 	mu         sync.RWMutex
@@ -73,12 +85,51 @@ func NewHub(ctx context.Context) *Hub {
 	hubCtx, cancel := context.WithCancel(ctx)
 	return &Hub{
 		clients:    make(map[string]*Client),
-		Broadcast:  make(chan *LiveMessage, 256),
+		broadcast:  make(chan *LiveMessage, 256),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		ctx:        hubCtx,
 		cancel:     cancel,
 	}
+}
+
+func NewClient(id string, conn *websocket.Conn) *Client {
+	return &Client{
+		ID:            id,
+		Conn:          conn,
+		Send:          make(chan []byte, 256),
+		Subscriptions: make(map[SubscriptionType]*MessageFilter),
+		LastSeen:      time.Now(),
+	}
+}
+
+func (c *Client) UpdateLastSeen() {
+	c.mu.Lock()
+	c.LastSeen = time.Now()
+	c.mu.Unlock()
+}
+
+func (c *Client) AddSubscription(subType SubscriptionType, filter *MessageFilter) {
+	c.mu.Lock()
+	c.Subscriptions[subType] = filter
+	c.mu.Unlock()
+}
+
+func (c *Client) RemoveSubscription(subType SubscriptionType) {
+	c.mu.Lock()
+	delete(c.Subscriptions, subType)
+	c.mu.Unlock()
+}
+
+func (c *Client) GetSubscriptions() map[SubscriptionType]*MessageFilter {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	subs := make(map[SubscriptionType]*MessageFilter)
+	for k, v := range c.Subscriptions {
+		subs[k] = v
+	}
+	return subs
 }
 
 func (h *Hub) Run() {
@@ -122,7 +173,7 @@ func (h *Hub) Run() {
 				"total_clients": len(h.clients),
 			}).Info("[Websocket Hub] Client unregistered")
 
-		case msg := <-h.Broadcast:
+		case msg := <-h.broadcast:
 			h.mu.RLock()
 			for _, client := range h.clients {
 				if h.shouldSendToClient(client, msg) {
@@ -183,7 +234,46 @@ func (h *Hub) shouldSendToClient(client *Client, message *LiveMessage) bool {
 			if message.Type == MessageTypeStatistics {
 				return true
 			}
+
+		case SubscriptionFastLiveResults:
+			if message.Type == MessageTypeFastLiveResults {
+				if filter == nil || filter.ElectionPairID == "" {
+					return true
+				}
+				if message.Filter != nil && message.Filter.ElectionPairID == filter.ElectionPairID {
+					return true
+				}
+			}
+		case SubscriptionFastCity:
+			if message.Type == MessageTypeFastCityResults {
+				if filter == nil || filter.Region == "" {
+					return true
+				}
+				if message.Filter != nil && message.Filter.Region == filter.Region {
+					return true
+				}
+			}
+
+		case SubscriptionFastRankings:
+			if message.Type == MessageTypeFastRankings {
+				if filter == nil || filter.ElectionPairID == "" {
+					return true
+				}
+				if message.Filter != nil && message.Filter.ElectionPairID == filter.ElectionPairID {
+					return true
+				}
+			}
+		case SubscriptionFastSummary:
+			if message.Type == MessageTypeFastElectionSummary || message.Type == MessageTypeFastAllElections {
+				if filter == nil || filter.ElectionPairID == "" {
+					return true
+				}
+				if message.Filter != nil && message.Filter.ElectionPairID == filter.ElectionPairID {
+					return true
+				}
+			}
 		}
+
 	}
 	return false
 }
@@ -248,7 +338,7 @@ func (h *Hub) BroadcastVoteUpdate(voteResult *response.VoteResultResponse) {
 	}
 
 	select {
-	case h.Broadcast <- message:
+	case h.broadcast <- message:
 	default:
 		log.Warn("[WebSocketHub] Broadcast channel full, dropping vote update message")
 	}
@@ -266,7 +356,7 @@ func (h *Hub) BroadcastElectionUpdate(electionResult *response.ElectionVoteResul
 	}
 
 	select {
-	case h.Broadcast <- message:
+	case h.broadcast <- message:
 	default:
 		log.Warn("[WebSocketHub] Broadcast channel full, dropping election update message")
 	}
@@ -283,7 +373,7 @@ func (h *Hub) BroadcastRegionUpdate(regionResult *response.RegionVoteResultRespo
 	}
 
 	select {
-	case h.Broadcast <- message:
+	case h.broadcast <- message:
 	default:
 		log.Warn("[WebSocketHub] Broadcast channel full, dropping region update message")
 	}
@@ -297,9 +387,91 @@ func (h *Hub) BroadcastStatisticsUpdate(stats *response.VoteStatisticsResponse) 
 	}
 
 	select {
-	case h.Broadcast <- message:
+	case h.broadcast <- message:
 	default:
 		log.Warn("[WebSocketHub] Broadcast channel full, dropping statistics update message")
+	}
+}
+
+func (h *Hub) BroadcastFastLiveResults(results *response.FastElectionResultsResponse) {
+	message := &LiveMessage{
+		Type:      MessageTypeFastLiveResults,
+		Timestamp: time.Now(),
+		Data:      results,
+		Filter: &MessageFilter{
+			ElectionPairID: results.ElectionID,
+		},
+	}
+
+	select {
+	case h.broadcast <- message:
+	default:
+		log.Warn("[WebSocketHub] Broadcast channel full, dropping fast live results update message")
+	}
+}
+
+func (h *Hub) BroadcastFastCityResults(results *response.FastCityResultsResponse) {
+	message := &LiveMessage{
+		Type:      MessageTypeFastCityResults,
+		Timestamp: time.Now(),
+		Data:      results,
+		Filter: &MessageFilter{
+			Region: results.CityName,
+		},
+	}
+
+	select {
+	case h.broadcast <- message:
+	default:
+		log.Warn("[WebSocketHub] Broadcast channel full, dropping fast city results update message")
+	}
+}
+
+func (h *Hub) BroadcastFastRankings(results *response.FastCityRankingsResponse) {
+	message := &LiveMessage{
+		Type:      MessageTypeFastRankings,
+		Timestamp: time.Now(),
+		Data:      results,
+		Filter: &MessageFilter{
+			ElectionPairID: results.ElectionID,
+		},
+	}
+
+	select {
+	case h.broadcast <- message:
+	default:
+		log.Warn("[WebSocketHub] Broadcast channel full, dropping fast rankings update message")
+	}
+}
+
+func (h *Hub) BroadcastFastElectionSummary(results *response.FastElectionSummaryResponse) {
+	message := &LiveMessage{
+		Type:      MessageTypeFastElectionSummary,
+		Timestamp: time.Now(),
+		Data:      results,
+		Filter: &MessageFilter{
+			ElectionPairID: results.ElectionID,
+		},
+	}
+
+	select {
+	case h.broadcast <- message:
+	default:
+		log.Warn("[WebSocketHub] Broadcast channel full, dropping fast election summary update message")
+	}
+}
+
+func (h *Hub) BroadcastFastAllElections(results *response.FastAllElectionsSummaryResponse) {
+	message := &LiveMessage{
+		Type:      MessageTypeFastAllElections,
+		Timestamp: time.Now(),
+		Data:      results,
+	}
+
+	select {
+	case h.broadcast <- message:
+	default:
+		log.Warn("[WebSocketHub] Broadcast channel full, dropping fast all elections update message")
 	}
 }
 
@@ -318,43 +490,4 @@ func (h *Hub) Stop() {
 	}
 	h.clients = make(map[string]*Client)
 	h.mu.Unlock()
-}
-
-func NewClient(id string, conn *websocket.Conn) *Client {
-	return &Client{
-		ID:            id,
-		Conn:          conn,
-		Send:          make(chan []byte, 256),
-		Subscriptions: make(map[SubscriptionType]*MessageFilter),
-		LastSeen:      time.Now(),
-	}
-}
-
-func (c *Client) UpdateLastSeen() {
-	c.mu.Lock()
-	c.LastSeen = time.Now()
-	c.mu.Unlock()
-}
-
-func (c *Client) AddSubscription(subType SubscriptionType, filter *MessageFilter) {
-	c.mu.Lock()
-	c.Subscriptions[subType] = filter
-	c.mu.Unlock()
-}
-
-func (c *Client) RemoveSubscription(subType SubscriptionType) {
-	c.mu.Lock()
-	delete(c.Subscriptions, subType)
-	c.mu.Unlock()
-}
-
-func (c *Client) GetSubscriptions() map[SubscriptionType]*MessageFilter {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	subs := make(map[SubscriptionType]*MessageFilter)
-	for k, v := range c.Subscriptions {
-		subs[k] = v
-	}
-	return subs
 }

@@ -53,10 +53,3 @@ GrpcServer:
 RedisConfig:
   Connection: "redis://:@localhost:6379"
 
-Cors:
-  AllowOrigins: "*"
-  AllowMethods: "GET,POST,PUT,DELETE,OPTIONS"
-  AllowHeaders: "Content-Type,Authorization, X-User-Id, X-Role, X-Address, Ngrok-Skip-Browser-Warning"
-  AllowCredentials: false
-  ExposeHeaders: "X-Custom-Header"
-  MaxAge: 3600

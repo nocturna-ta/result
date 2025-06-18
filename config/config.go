@@ -12,7 +12,6 @@ type (
 		API        APIConfig        `yaml:"API"`
 		Database   DBConfig         `yaml:"Database"`
 		Kafka      KafkaConfig      `yaml:"Kafka"`
-		Cors       CorsConfig       `yaml:"Cors"`
 		GrpcServer GrpcServerConfig `yaml:"GrpcServer"`
 		Redis      RedisConfig      `yaml:"RedisConfig"`
 	}
@@ -36,14 +35,6 @@ type (
 		MaxIdleConn     int    `yaml:"MaxIdleConn" env:"DB_MAX_IDLE_CONN"`
 		MaxConn         int    `yaml:"MaxConn" env:"DB_MAX_CONN"`
 		ConnMaxLifetime string `yaml:"ConnMaxLifetime" env:"DB_CONN_MAX_LIFETIME"`
-	}
-	CorsConfig struct {
-		AllowOrigins     string `yaml:"AllowOrigins"`
-		AllowMethods     string `yaml:"AllowMethods"`
-		AllowHeaders     string `yaml:"AllowHeaders"`
-		AllowCredentials bool   `yaml:"AllowCredentials"`
-		ExposeHeaders    string `yaml:"ExposeHeaders"`
-		MaxAge           int    `yaml:"MaxAge"`
 	}
 
 	GrpcServerConfig struct {

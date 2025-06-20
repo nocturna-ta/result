@@ -13,19 +13,19 @@ import (
 )
 
 type WebSocketController struct {
-	handler           *websocket.Handler
-	liveResultService usecases.LiveResultUsecases
+	handler      *websocket.Handler
+	liveResultUc usecases.LiveResultUseCases
 }
 
 type WebSocketControllerOptions struct {
-	Handler           *websocket.Handler
-	LiveResultService usecases.LiveResultUsecases
+	Handler      *websocket.Handler
+	LiveResultUc usecases.LiveResultUseCases
 }
 
 func NewWebSocketController(opts *WebSocketControllerOptions) *WebSocketController {
 	return &WebSocketController{
-		handler:           opts.Handler,
-		liveResultService: opts.LiveResultService,
+		handler:      opts.Handler,
+		liveResultUc: opts.LiveResultUc,
 	}
 }
 
@@ -41,7 +41,7 @@ func (wsc *WebSocketController) GetLiveResultsStatus(ctx context.Context, req *r
 	span, ctx := tracing.StartSpanFromContext(ctx, "WebSocketController.GetLiveResultsStatus")
 	defer span.End()
 
-	connectedClients := wsc.liveResultService.GetConnectedClients(ctx)
+	connectedClients := wsc.liveResultUc.GetConnectedClientsCount(ctx)
 
 	status := map[string]interface{}{
 		"status":             "active",
@@ -49,16 +49,18 @@ func (wsc *WebSocketController) GetLiveResultsStatus(ctx context.Context, req *r
 		"websocket_endpoint": "/v1/live/ws",
 		"supported_subscriptions": []string{
 			"all",
-			"election",
-			"region",
-			"statistics",
+			"live_results",
+			"city",
+			"rankings",
+			"summary",
 		},
 		"message_types": []string{
-			"vote_update",
-			"election_update",
-			"region_update",
-			"statistics_update",
 			"heartbeat",
+			"live_results_update",
+			"city_results_update",
+			"rankings_update",
+			"election_summary_update",
+			"all_election_update",
 		},
 	}
 
@@ -72,7 +74,7 @@ func (wsc *WebSocketController) GetLiveResultsStatus(ctx context.Context, req *r
 // @Accept json
 // @Produce json
 // @Param election_pair_id query string false "Election Pair ID to broadcast"
-// @Param region query string false "Region to broadcast"
+// @Param city query string false "City name for fast results broadcast"
 // @Param type query string false "Broadcast type: vote, election, region, statistics, all" default(all)
 // @Success 200 {object} jsonResponse{data=map[string]any} "Broadcast triggered"
 // @Router /v1/live/broadcast [post]
@@ -81,10 +83,10 @@ func (wsc *WebSocketController) TriggerBroadcast(ctx context.Context, req *route
 	defer span.End()
 
 	electionPairID := req.Query("election_pair_id", "")
-	region := req.Query("region", "")
 	broadcastType := req.Query("type", "all")
+	city := req.Query("city", "")
 
-	connectedClients := wsc.liveResultService.GetConnectedClients(ctx)
+	connectedClients := wsc.liveResultUc.GetConnectedClientsCount(ctx)
 	if connectedClients == 0 {
 		return rest.NewJSONResponse().SetData(map[string]interface{}{
 			"message": "No connected clients, broadcast skipped",
@@ -94,26 +96,44 @@ func (wsc *WebSocketController) TriggerBroadcast(ctx context.Context, req *route
 
 	var err error
 	switch broadcastType {
-	case "statistics":
-		err = wsc.liveResultService.BroadcastStatisticsUpdate(ctx)
-	case "election":
+	case "live_results":
 		if electionPairID == "" {
 			return custresp.CustomErrorResponse(&custerr.ErrChain{
-				Message: "election_pair_id is required for election broadcast",
+				Message: "election_pair_id is required for fast live results broadcast",
 				Code:    400,
 			})
 		}
-		err = wsc.liveResultService.BroadcastElectionUpdate(ctx, electionPairID)
-	case "region":
-		if region == "" {
+		err = wsc.liveResultUc.BroadcastLiveResultsUpdate(ctx, electionPairID)
+
+	case "city":
+		if city == "" {
 			return custresp.CustomErrorResponse(&custerr.ErrChain{
-				Message: "region is required for region broadcast",
+				Message: "region is required for fast city results broadcast",
 				Code:    400,
 			})
 		}
-		err = wsc.liveResultService.BroadcastRegionUpdate(ctx, region)
+		err = wsc.liveResultUc.BroadcastCityResultsUpdate(ctx, city)
+
+	case "rankings":
+		if electionPairID == "" {
+			return custresp.CustomErrorResponse(&custerr.ErrChain{
+				Message: "election_pair_id is required for fast rankings broadcast",
+				Code:    400,
+			})
+		}
+
+		err = wsc.liveResultUc.BroadcastRankingsUpdate(ctx, electionPairID, 10)
+
+	case "summary":
+		if electionPairID == "" {
+			return custresp.CustomErrorResponse(&custerr.ErrChain{
+				Message: "election_pair_id is required for fast summary broadcast",
+				Code:    400,
+			})
+		}
+		err = wsc.liveResultUc.BroadcastElectionSummaryUpdate(ctx, electionPairID)
 	case "all":
-		err = wsc.liveResultService.BroadcastAllUpdates(ctx, electionPairID, region)
+		err = wsc.liveResultUc.BroadcastBulkUpdate(ctx, electionPairID)
 	default:
 		return custresp.CustomErrorResponse(&custerr.ErrChain{
 			Message: "Invalid broadcast type",
@@ -129,7 +149,7 @@ func (wsc *WebSocketController) TriggerBroadcast(ctx context.Context, req *route
 		"message":          "Broadcast triggered successfully",
 		"type":             broadcastType,
 		"election_pair_id": electionPairID,
-		"region":           region,
+		"city":             city,
 		"clients":          connectedClients,
 	}), nil
 }

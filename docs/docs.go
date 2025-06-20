@@ -66,6 +66,176 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/admin/broadcast/live-results": {
+            "post": {
+                "description": "Manually trigger a broadcast of live results for testing or manual refresh (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Live Results Admin"
+                ],
+                "summary": "Trigger live results broadcast",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Election Pair ID to broadcast",
+                        "name": "election_pair_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Broadcast triggered",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/cache/invalidate/all": {
+            "post": {
+                "description": "Invalidate all live results cache entries (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Live Results Admin"
+                ],
+                "summary": "Invalidate all cache",
+                "responses": {
+                    "200": {
+                        "description": "All cache invalidated",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/cache/invalidate/city/{city_name}": {
+            "post": {
+                "description": "Invalidate cache entries for a specific city (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Live Results Admin"
+                ],
+                "summary": "Invalidate city cache",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "City Name",
+                        "name": "city_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cache invalidated",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/cache/invalidate/election/{election_pair_id}": {
+            "post": {
+                "description": "Invalidate all cache entries related to a specific election (admin only)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Live Results Admin"
+                ],
+                "summary": "Invalidate election cache",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Election Pair ID",
+                        "name": "election_pair_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Cache invalidated",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/v1/live/broadcast": {
             "post": {
                 "description": "Manually trigger a broadcast of current results (for testing/admin purposes)",
@@ -88,8 +258,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Region to broadcast",
-                        "name": "region",
+                        "description": "City name for fast results broadcast",
+                        "name": "city",
                         "in": "query"
                     },
                     {
@@ -114,6 +284,247 @@ const docTemplate = `{
                                         "data": {
                                             "type": "object",
                                             "additionalProperties": true
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/live/cities/{city_name}": {
+            "get": {
+                "description": "Get real-time city voting results optimized for high performance using materialized views and Redis cache",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Live Results"
+                ],
+                "summary": "Get fast live city results",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "City Name",
+                        "name": "city_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fast live city results",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.CityResultsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/live/elections": {
+            "get": {
+                "description": "Get real-time summaries for all active elections optimized for dashboards using materialized views and Redis cache",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Live Results"
+                ],
+                "summary": "Get fast summaries for all elections",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Limit number of elections returned",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fast election summaries",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.AllElectionsSummaryResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/live/elections/{election_pair_id}": {
+            "get": {
+                "description": "Get real-time election results with percentages optimized for high performance using materialized views and Redis cache",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Live Results"
+                ],
+                "summary": "Get fast live election results with percentages",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Election Pair ID",
+                        "name": "election_pair_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "default": true,
+                        "description": "Include top cities data",
+                        "name": "include_cities",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Limit number of cities returned",
+                        "name": "cities_limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fast live election results",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.ElectionResultsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/live/elections/{election_pair_id}/summary": {
+            "get": {
+                "description": "Get real-time summary for a specific election optimized for high performance using materialized views and Redis cache",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Live Results"
+                ],
+                "summary": "Get fast election summary",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Election Pair ID",
+                        "name": "election_pair_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fast election summary",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.ElectionSummaryResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/live/rankings/{election_pair_id}": {
+            "get": {
+                "description": "Get real-time city rankings for a specific election optimized for high performance using materialized views and Redis cache",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Live Results"
+                ],
+                "summary": "Get fast city rankings for an election",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Election Pair ID",
+                        "name": "election_pair_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Limit number of cities returned",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Fast city rankings",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/controller.jsonResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/response.CityRankingsResponse"
                                         }
                                     }
                                 }
@@ -158,630 +569,6 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/v1/results/elections/{election_pair_id}": {
-            "get": {
-                "description": "Get detailed election results for a specific election pair",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Results"
-                ],
-                "summary": "Get election results by election pair ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Election Pair ID",
-                        "name": "election_pair_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Election results data",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/controller.jsonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/response.ElectionVoteResultResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/results/elections/{election_pair_id}/count": {
-            "get": {
-                "description": "Count the number of votes for a specific election pair",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Results"
-                ],
-                "summary": "Count votes by election pair ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Election Pair ID",
-                        "name": "election_pair_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Count of votes",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/controller.jsonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "additionalProperties": true
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/results/elections/{election_pair_id}/votes": {
-            "get": {
-                "description": "Get all vote results for a specific election pair",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Results"
-                ],
-                "summary": "Get vote results by election pair ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Election Pair ID",
-                        "name": "election_pair_id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "default": 50,
-                        "description": "Limit the number of results",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "Offset for pagination",
-                        "name": "offset",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of vote results",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/controller.jsonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/response.VoteResultResponse"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/results/regions": {
-            "get": {
-                "description": "Get statistical data for all regions",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Results"
-                ],
-                "summary": "Get region statistics",
-                "responses": {
-                    "200": {
-                        "description": "List of region statistics",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/controller.jsonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/response.RegionVoteResultResponse"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/results/regions/{region}": {
-            "get": {
-                "description": "Get detailed region results for a specific region",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Results"
-                ],
-                "summary": "Get region results by region",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Region",
-                        "name": "region",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Region results data",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/controller.jsonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/response.RegionVoteResultResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/results/regions/{region}/count": {
-            "get": {
-                "description": "Count the number of votes in a specific region",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Results"
-                ],
-                "summary": "Count votes by region",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Region",
-                        "name": "region",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Count of votes",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/controller.jsonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "additionalProperties": true
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/results/regions/{region}/elections": {
-            "get": {
-                "description": "Get detailed election results for a specific region",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Results"
-                ],
-                "summary": "Get election results by region",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Region",
-                        "name": "region",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of election results",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/controller.jsonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/response.ElectionVoteResultResponse"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/results/regions/{region}/votes": {
-            "get": {
-                "description": "Get all vote results for a specific region",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Results"
-                ],
-                "summary": "Get vote results by region",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Region",
-                        "name": "region",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "default": 50,
-                        "description": "Limit the number of results",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "Offset for pagination",
-                        "name": "offset",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of vote results",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/controller.jsonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/response.VoteResultResponse"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/results/statistics": {
-            "get": {
-                "description": "Get overall vote statistics including total votes, valid votes, and invalid votes",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Results"
-                ],
-                "summary": "Get overall vote statistics",
-                "responses": {
-                    "200": {
-                        "description": "Overall vote statistics data",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/controller.jsonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/response.VoteStatisticsResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/results/statistics/daily": {
-            "get": {
-                "description": "Get daily vote statistics for a specified date range",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Results"
-                ],
-                "summary": "Get daily vote statistics",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Start date in YYYY-MM-DD format",
-                        "name": "start_date",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "End date in YYYY-MM-DD format",
-                        "name": "end_date",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of daily vote statistics",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/controller.jsonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/response.VoteStatisticsResponse"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/results/votes": {
-            "get": {
-                "description": "Get all vote results with a specific status",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Results"
-                ],
-                "summary": "Get vote results by status",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Vote Result Status",
-                        "name": "status",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "default": 50,
-                        "description": "Limit the number of results",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "Offset for pagination",
-                        "name": "offset",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of vote results",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/controller.jsonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/response.VoteResultResponse"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/results/votes/count": {
-            "get": {
-                "description": "Count the number of votes with a specific status",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Results"
-                ],
-                "summary": "Count votes by status",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Vote Result Status",
-                        "name": "status",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Count of votes",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/controller.jsonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "additionalProperties": true
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/results/votes/{id}": {
-            "get": {
-                "description": "Get a specific vote result by its ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Results"
-                ],
-                "summary": "Get vote result by ID",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Vote Result ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Vote result data",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/controller.jsonResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/response.VoteResultResponse"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
@@ -811,112 +598,237 @@ const docTemplate = `{
                 }
             }
         },
-        "response.ElectionVoteResultResponse": {
+        "response.AllElectionsSummaryResponse": {
             "type": "object",
             "properties": {
-                "confirmed_votes": {
+                "elections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.ElectionSummaryResponse"
+                    }
+                },
+                "last_updated": {
+                    "type": "string"
+                },
+                "total_elections": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.CityElectionResult": {
+            "type": "object",
+            "properties": {
+                "city_rank": {
                     "type": "integer"
                 },
                 "election_pair_id": {
                     "type": "string"
                 },
-                "error_votes": {
+                "percentage": {
+                    "type": "number"
+                },
+                "vote_success_rate": {
+                    "type": "number"
+                },
+                "votes": {
                     "type": "integer"
+                }
+            }
+        },
+        "response.CityRankingItem": {
+            "type": "object",
+            "properties": {
+                "city_name": {
+                    "type": "string"
+                },
+                "city_rank": {
+                    "type": "integer"
+                },
+                "confirmed_votes": {
+                    "type": "integer"
+                },
+                "participation_rate": {
+                    "type": "number"
+                },
+                "unique_voters": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.CityRankingsResponse": {
+            "type": "object",
+            "properties": {
+                "election_id": {
+                    "type": "string"
                 },
                 "last_updated": {
                     "type": "string"
                 },
-                "pending_votes": {
+                "rankings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.CityRankingItem"
+                    }
+                },
+                "total_cities": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.CityResultSummary": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string"
+                },
+                "percentage": {
+                    "type": "number"
+                },
+                "rank": {
                     "type": "integer"
                 },
-                "region": {
+                "voters": {
+                    "type": "integer"
+                },
+                "votes": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.CityResultsResponse": {
+            "type": "object",
+            "properties": {
+                "city_name": {
                     "type": "string"
+                },
+                "city_stats": {
+                    "$ref": "#/definitions/response.CityStatistics"
+                },
+                "election_results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.CityElectionResult"
+                    }
+                },
+                "last_updated": {
+                    "type": "string"
+                },
+                "total_voters": {
+                    "type": "integer"
                 },
                 "total_votes": {
                     "type": "integer"
                 }
             }
         },
-        "response.RegionVoteResultResponse": {
+        "response.CityStatistics": {
             "type": "object",
             "properties": {
-                "confirmed_votes": {
-                    "type": "integer"
+                "avg_votes_per_election": {
+                    "type": "number"
                 },
-                "error_votes": {
+                "leading_election": {
+                    "type": "string"
+                },
+                "participation_rate": {
+                    "type": "number"
+                },
+                "total_elections": {
                     "type": "integer"
+                }
+            }
+        },
+        "response.ElectionResultsResponse": {
+            "type": "object",
+            "properties": {
+                "election_id": {
+                    "type": "string"
                 },
                 "last_updated": {
                     "type": "string"
                 },
-                "pending_votes": {
-                    "type": "integer"
+                "overall_percentage": {
+                    "type": "number"
                 },
-                "region": {
-                    "type": "string"
+                "regions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.RegionResultSummary"
+                    }
+                },
+                "stats": {
+                    "$ref": "#/definitions/response.ElectionStatsSummary"
+                },
+                "top_cities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.CityResultSummary"
+                    }
+                },
+                "total_voters": {
+                    "type": "integer"
                 },
                 "total_votes": {
                     "type": "integer"
                 }
             }
         },
-        "response.VoteResultResponse": {
+        "response.ElectionStatsSummary": {
             "type": "object",
             "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "election_pair_id": {
-                    "type": "string"
-                },
-                "error_message": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "processed_at": {
-                    "type": "string"
-                },
-                "region": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "transaction_hash": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "voted_at": {
-                    "type": "string"
-                },
-                "voter_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "response.VoteStatisticsResponse": {
-            "type": "object",
-            "properties": {
-                "confirmed_votes": {
+                "active_regions": {
                     "type": "integer"
                 },
-                "error_votes": {
-                    "type": "integer"
-                },
-                "last_updated": {
-                    "type": "string"
-                },
-                "pending_votes": {
-                    "type": "integer"
+                "completion_rate": {
+                    "type": "number"
                 },
                 "success_rate": {
                     "type": "number"
                 },
-                "total_votes": {
+                "total_regions": {
+                    "type": "integer"
+                },
+                "total_voters": {
+                    "type": "integer"
+                },
+                "votes_per_second": {
+                    "type": "number"
+                }
+            }
+        },
+        "response.ElectionSummaryResponse": {
+            "type": "object",
+            "properties": {
+                "election_id": {
+                    "type": "string"
+                },
+                "last_updated": {
+                    "type": "string"
+                },
+                "overall_success_rate": {
+                    "type": "number"
+                },
+                "total_confirmed_votes": {
+                    "type": "integer"
+                },
+                "total_regions": {
+                    "type": "integer"
+                },
+                "total_unique_voters": {
+                    "type": "integer"
+                }
+            }
+        },
+        "response.RegionResultSummary": {
+            "type": "object",
+            "properties": {
+                "percentage": {
+                    "type": "number"
+                },
+                "region": {
+                    "type": "string"
+                },
+                "votes": {
                     "type": "integer"
                 }
             }

@@ -30,35 +30,6 @@ type VoteResult struct {
 	UpdatedAt       time.Time  `db:"updated_at"`
 }
 
-type ElectionResult struct {
-	ElectionPairID string    `db:"election_pair_id"`
-	Region         string    `db:"region"`
-	TotalVotes     uint64    `db:"total_votes"`
-	ConfirmedVotes uint64    `db:"confirmed_votes"`
-	PendingVotes   uint64    `db:"pending_votes"`
-	ErrorVotes     uint64    `db:"error_votes"`
-	LastUpdated    time.Time `db:"last_updated"`
-}
-
-type RegionResult struct {
-	Region         string    `db:"region"`
-	TotalVotes     uint64    `db:"total_votes"`
-	ConfirmedVotes uint64    `db:"confirmed_votes"`
-	PendingVotes   uint64    `db:"pending_votes" `
-	ErrorVotes     uint64    `db:"error_votes"`
-	LastUpdated    time.Time `db:"last_updated"`
-}
-
-type VoteStatistics struct {
-	Date           time.Time `db:"date"`
-	TotalVotes     uint64    `db:"total_votes"`
-	ConfirmedVotes uint64    `db:"confirmed_votes"`
-	PendingVotes   uint64    `db:"pending_votes"`
-	ErrorVotes     uint64    `db:"error_votes"`
-	SuccessRate    float64   `db:"success_rate"`
-	LastUpdated    time.Time `db:"last_updated"`
-}
-
 func FromVoteProcessedMessage(msg *event.VoteProcessedMessage) *VoteResult {
 	return &VoteResult{
 		ID:              msg.VoteID,
@@ -83,13 +54,4 @@ func FromVoteSubmitMessage(msg *event.VoteSubmitMessage) *VoteResult {
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
 	}
-}
-
-func (vs *VoteStatistics) CalculateSuccessRate() {
-	if vs.TotalVotes > 0 {
-		vs.SuccessRate = float64(vs.ConfirmedVotes) / float64(vs.TotalVotes) * 100
-	} else {
-		vs.SuccessRate = 0
-	}
-
 }

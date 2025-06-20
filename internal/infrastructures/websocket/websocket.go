@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/contrib/websocket"
 	"github.com/nocturna-ta/golib/log"
 	"github.com/nocturna-ta/result/internal/usecases/response"
+	"strings"
 	"sync"
 	"time"
 )
@@ -13,22 +14,27 @@ import (
 type MessageType string
 
 const (
-	MessageTypeVoteUpdate     MessageType = "vote_update"
-	MessageTypeElectionUpdate MessageType = "election_update"
-	MessageTypeRegionUpdate   MessageType = "region_update"
-	MessageTypeStatistics     MessageType = "statistics_update"
-	MessageTypeHeartbeat      MessageType = "heartbeat"
-	MessageTypeSubscribe      MessageType = "subscribe"
-	MessageTypeUnsubscribe    MessageType = "unsubscribe"
+	MessageTypeVoteUpdate  MessageType = "vote_update"
+	MessageTypeHeartbeat   MessageType = "heartbeat"
+	MessageTypeSubscribe   MessageType = "subscribe"
+	MessageTypeUnsubscribe MessageType = "unsubscribe"
+
+	MessageTypeLiveResults         MessageType = "live_results_update"
+	MessageTypeIncremental         MessageType = "incremental_update"
+	MessageTypeLiveCityResults     MessageType = "city_results_update"
+	MessageTypeLiveRankings        MessageType = "rankings_update"
+	MessageTypeLiveElectionSummary MessageType = "election_summary_update"
+	MessageTypeLiveAllElections    MessageType = "all_elections_update"
 )
 
 type SubscriptionType string
 
 const (
-	SubscriptionAll        SubscriptionType = "all"
-	SubscriptionElection   SubscriptionType = "election"
-	SubscriptionRegion     SubscriptionType = "region"
-	SubscriptionStatistics SubscriptionType = "statistics"
+	SubscriptionAll         SubscriptionType = "all"
+	SubscriptionLiveResults SubscriptionType = "live_results"
+	SubscriptionCity        SubscriptionType = "city"
+	SubscriptionRankings    SubscriptionType = "rankings"
+	SubscriptionSummary     SubscriptionType = "summary"
 )
 
 type LiveMessage struct {
@@ -40,14 +46,14 @@ type LiveMessage struct {
 
 type MessageFilter struct {
 	ElectionPairID string `json:"election_pair_id,omitempty"`
-	Region         string `json:"region,omitempty"`
+	City           string `json:"city,omitempty"`
 }
 
 type SubscriptionMessage struct {
 	Type           MessageType      `json:"type"`
 	Subscription   SubscriptionType `json:"subscription"`
 	ElectionPairID string           `json:"election_pair_id,omitempty"`
-	Region         string           `json:"region,omitempty"`
+	City           string           `json:"city,omitempty"`
 }
 
 type Client struct {
@@ -79,6 +85,45 @@ func NewHub(ctx context.Context) *Hub {
 		ctx:        hubCtx,
 		cancel:     cancel,
 	}
+}
+
+func NewClient(id string, conn *websocket.Conn) *Client {
+	return &Client{
+		ID:            id,
+		Conn:          conn,
+		Send:          make(chan []byte, 256),
+		Subscriptions: make(map[SubscriptionType]*MessageFilter),
+		LastSeen:      time.Now(),
+	}
+}
+
+func (c *Client) UpdateLastSeen() {
+	c.mu.Lock()
+	c.LastSeen = time.Now()
+	c.mu.Unlock()
+}
+
+func (c *Client) AddSubscription(subType SubscriptionType, filter *MessageFilter) {
+	c.mu.Lock()
+	c.Subscriptions[subType] = filter
+	c.mu.Unlock()
+}
+
+func (c *Client) RemoveSubscription(subType SubscriptionType) {
+	c.mu.Lock()
+	delete(c.Subscriptions, subType)
+	c.mu.Unlock()
+}
+
+func (c *Client) GetSubscriptions() map[SubscriptionType]*MessageFilter {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	subs := make(map[SubscriptionType]*MessageFilter)
+	for k, v := range c.Subscriptions {
+		subs[k] = v
+	}
+	return subs
 }
 
 func (h *Hub) Run() {
@@ -156,33 +201,8 @@ func (h *Hub) shouldSendToClient(client *Client, message *LiveMessage) bool {
 	}
 
 	for subType, filter := range client.Subscriptions {
-		switch subType {
-		case SubscriptionAll:
+		if h.matchesSubscription(subType, filter, message, client.ID) {
 			return true
-
-		case SubscriptionElection:
-			if message.Type == MessageTypeElectionUpdate || message.Type == MessageTypeVoteUpdate {
-				if filter == nil || filter.ElectionPairID == "" {
-					return true
-				}
-				if message.Filter != nil && message.Filter.ElectionPairID == filter.ElectionPairID {
-					return true
-				}
-			}
-
-		case SubscriptionRegion:
-			if message.Type == MessageTypeRegionUpdate || message.Type == MessageTypeVoteUpdate {
-				if filter == nil || filter.Region == "" {
-					return true
-				}
-				if message.Filter != nil && message.Filter.Region == filter.Region {
-					return true
-				}
-			}
-		case SubscriptionStatistics:
-			if message.Type == MessageTypeStatistics {
-				return true
-			}
 		}
 	}
 	return false
@@ -236,14 +256,96 @@ func (h *Hub) cleanupStaleConnections() {
 	}
 }
 
-func (h *Hub) BroadcastVoteUpdate(voteResult *response.VoteResultResponse) {
+func (h *Hub) BroadcastLiveResults(results *response.ElectionResultsResponse) {
+	message := &LiveMessage{
+		Type:      MessageTypeLiveResults,
+		Timestamp: time.Now(),
+		Data:      results,
+		Filter: &MessageFilter{
+			ElectionPairID: results.ElectionID,
+		},
+	}
+
+	select {
+	case h.broadcast <- message:
+	default:
+		log.Warn("[WebSocketHub] Broadcast channel full, dropping fast live results update message")
+	}
+}
+
+func (h *Hub) BroadcastCityResults(results *response.CityResultsResponse) {
+	message := &LiveMessage{
+		Type:      MessageTypeLiveCityResults,
+		Timestamp: time.Now(),
+		Data:      results,
+		Filter: &MessageFilter{
+			City: results.CityName,
+		},
+	}
+
+	select {
+	case h.broadcast <- message:
+	default:
+		log.Warn("[WebSocketHub] Broadcast channel full, dropping fast city results update message")
+	}
+}
+
+func (h *Hub) BroadcastRankings(results *response.CityRankingsResponse) {
+	message := &LiveMessage{
+		Type:      MessageTypeLiveRankings,
+		Timestamp: time.Now(),
+		Data:      results,
+		Filter: &MessageFilter{
+			ElectionPairID: results.ElectionID,
+		},
+	}
+
+	select {
+	case h.broadcast <- message:
+	default:
+		log.Warn("[WebSocketHub] Broadcast channel full, dropping fast rankings update message")
+	}
+}
+
+func (h *Hub) BroadcastElectionSummary(results *response.ElectionSummaryResponse) {
+	message := &LiveMessage{
+		Type:      MessageTypeLiveElectionSummary,
+		Timestamp: time.Now(),
+		Data:      results,
+		Filter: &MessageFilter{
+			ElectionPairID: results.ElectionID,
+		},
+	}
+
+	select {
+	case h.broadcast <- message:
+	default:
+		log.Warn("[WebSocketHub] Broadcast channel full, dropping fast election summary update message")
+	}
+}
+
+func (h *Hub) BroadcastFastAllElections(results *response.AllElectionsSummaryResponse) {
+	message := &LiveMessage{
+		Type:      MessageTypeLiveAllElections,
+		Timestamp: time.Now(),
+		Data:      results,
+	}
+
+	select {
+	case h.broadcast <- message:
+	default:
+		log.Warn("[WebSocketHub] Broadcast channel full, dropping fast all elections update message")
+	}
+}
+
+func (h *Hub) BroadcastVoteUpdate(results *response.VoteResultResponse) {
 	message := &LiveMessage{
 		Type:      MessageTypeVoteUpdate,
 		Timestamp: time.Now(),
-		Data:      voteResult,
+		Data:      results,
 		Filter: &MessageFilter{
-			ElectionPairID: voteResult.ElectionPairID,
-			Region:         voteResult.Region,
+			ElectionPairID: results.ElectionPairID,
+			City:           results.Region,
 		},
 	}
 
@@ -252,55 +354,7 @@ func (h *Hub) BroadcastVoteUpdate(voteResult *response.VoteResultResponse) {
 	default:
 		log.Warn("[WebSocketHub] Broadcast channel full, dropping vote update message")
 	}
-}
 
-func (h *Hub) BroadcastElectionUpdate(electionResult *response.ElectionVoteResultResponse) {
-	message := &LiveMessage{
-		Type:      MessageTypeElectionUpdate,
-		Timestamp: time.Now(),
-		Data:      electionResult,
-		Filter: &MessageFilter{
-			ElectionPairID: electionResult.ElectionPairID,
-			Region:         electionResult.Region,
-		},
-	}
-
-	select {
-	case h.broadcast <- message:
-	default:
-		log.Warn("[WebSocketHub] Broadcast channel full, dropping election update message")
-	}
-}
-
-func (h *Hub) BroadcastRegionUpdate(regionResult *response.RegionVoteResultResponse) {
-	message := &LiveMessage{
-		Type:      MessageTypeRegionUpdate,
-		Timestamp: time.Now(),
-		Data:      regionResult,
-		Filter: &MessageFilter{
-			Region: regionResult.Region,
-		},
-	}
-
-	select {
-	case h.broadcast <- message:
-	default:
-		log.Warn("[WebSocketHub] Broadcast channel full, dropping region update message")
-	}
-}
-
-func (h *Hub) BroadcastStatisticsUpdate(stats *response.VoteStatisticsResponse) {
-	message := &LiveMessage{
-		Type:      MessageTypeStatistics,
-		Timestamp: time.Now(),
-		Data:      stats,
-	}
-
-	select {
-	case h.broadcast <- message:
-	default:
-		log.Warn("[WebSocketHub] Broadcast channel full, dropping statistics update message")
-	}
 }
 
 func (h *Hub) GetClientCount() int {
@@ -320,41 +374,94 @@ func (h *Hub) Stop() {
 	h.mu.Unlock()
 }
 
-func NewClient(id string, conn *websocket.Conn) *Client {
-	return &Client{
-		ID:            id,
-		Conn:          conn,
-		Send:          make(chan []byte, 256),
-		Subscriptions: make(map[SubscriptionType]*MessageFilter),
-		LastSeen:      time.Now(),
+func (h *Hub) matchesSubscription(subType SubscriptionType, filter *MessageFilter, message *LiveMessage, clientID string) bool {
+	switch subType {
+	case SubscriptionAll:
+		log.WithFields(log.Fields{
+			"client_id":    clientID,
+			"subscription": "all",
+		}).Debug("[WebSocket] Sending to 'all' subscription")
+		return true
+
+	case SubscriptionLiveResults:
+		return h.matchesFastLiveResults(filter, message, clientID)
+
+	case SubscriptionCity:
+		return h.matchesFastCity(filter, message, clientID)
+
+	case SubscriptionRankings:
+		return h.matchesFastRankings(filter, message, clientID)
+
+	case SubscriptionSummary:
+		return h.matchesFastSummary(filter, message, clientID)
 	}
+
+	return false
 }
 
-func (c *Client) UpdateLastSeen() {
-	c.mu.Lock()
-	c.LastSeen = time.Now()
-	c.mu.Unlock()
-}
-
-func (c *Client) AddSubscription(subType SubscriptionType, filter *MessageFilter) {
-	c.mu.Lock()
-	c.Subscriptions[subType] = filter
-	c.mu.Unlock()
-}
-
-func (c *Client) RemoveSubscription(subType SubscriptionType) {
-	c.mu.Lock()
-	delete(c.Subscriptions, subType)
-	c.mu.Unlock()
-}
-
-func (c *Client) GetSubscriptions() map[SubscriptionType]*MessageFilter {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	subs := make(map[SubscriptionType]*MessageFilter)
-	for k, v := range c.Subscriptions {
-		subs[k] = v
+func (h *Hub) matchesFastLiveResults(filter *MessageFilter, message *LiveMessage, clientID string) bool {
+	if message.Type != MessageTypeLiveResults {
+		return false
 	}
-	return subs
+
+	if filter == nil || strings.TrimSpace(filter.ElectionPairID) == "" {
+		return true
+	}
+
+	if message.Filter == nil {
+		return false
+	}
+
+	return strings.TrimSpace(filter.ElectionPairID) == strings.TrimSpace(message.Filter.ElectionPairID)
+}
+
+func (h *Hub) matchesFastCity(filter *MessageFilter, message *LiveMessage, clientID string) bool {
+	if message.Type != MessageTypeLiveCityResults {
+		return false
+	}
+
+	if filter == nil || strings.TrimSpace(filter.City) == "" {
+		return true
+	}
+
+	if message.Filter == nil {
+		return false
+	}
+
+	clientRegion := strings.TrimSpace(strings.ToLower(filter.City))
+	messageRegion := strings.TrimSpace(strings.ToLower(message.Filter.City))
+
+	return clientRegion == messageRegion
+}
+
+func (h *Hub) matchesFastRankings(filter *MessageFilter, message *LiveMessage, clientID string) bool {
+	if message.Type != MessageTypeLiveRankings {
+		return false
+	}
+
+	if filter == nil || strings.TrimSpace(filter.ElectionPairID) == "" {
+		return true
+	}
+
+	if message.Filter == nil {
+		return false
+	}
+
+	return strings.TrimSpace(filter.ElectionPairID) == strings.TrimSpace(message.Filter.ElectionPairID)
+}
+
+func (h *Hub) matchesFastSummary(filter *MessageFilter, message *LiveMessage, clientID string) bool {
+	if message.Type != MessageTypeLiveElectionSummary && message.Type != MessageTypeLiveAllElections {
+		return false
+	}
+
+	if filter == nil || strings.TrimSpace(filter.ElectionPairID) == "" {
+		return true
+	}
+
+	if message.Filter == nil {
+		return false
+	}
+
+	return strings.TrimSpace(filter.ElectionPairID) == strings.TrimSpace(message.Filter.ElectionPairID)
 }

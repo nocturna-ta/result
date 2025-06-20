@@ -1,24 +1,38 @@
 package live_result
 
 import (
+	"github.com/nocturna-ta/golib/cache"
 	"github.com/nocturna-ta/result/internal/domain/repository"
 	"github.com/nocturna-ta/result/internal/infrastructures/websocket"
 	"github.com/nocturna-ta/result/internal/usecases"
 )
 
+type CacheStatistics struct {
+	TotalHits   uint64
+	TotalMisses uint64
+}
+
 type Module struct {
-	voteResultRepo repository.VoteResultRepository
-	hub            *websocket.Hub
+	liveResultRepo  repository.LiveResultRepository
+	voteResultRepo  repository.VoteResultRepository
+	redisCache      cache.Cache
+	wsHub           *websocket.Hub
+	cacheStatistics *CacheStatistics
 }
 
 type Options struct {
+	LiveResultRepo repository.LiveResultRepository
 	VoteResultRepo repository.VoteResultRepository
-	Hub            *websocket.Hub
+	RedisCache     cache.Cache
+	WsHub          *websocket.Hub
 }
 
-func New(opts *Options) usecases.LiveResultUsecases {
+func New(opts *Options) usecases.LiveResultUseCases {
 	return &Module{
-		voteResultRepo: opts.VoteResultRepo,
-		hub:            opts.Hub,
+		liveResultRepo:  opts.LiveResultRepo,
+		voteResultRepo:  opts.VoteResultRepo,
+		redisCache:      opts.RedisCache,
+		wsHub:           opts.WsHub,
+		cacheStatistics: &CacheStatistics{},
 	}
 }

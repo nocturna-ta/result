@@ -37,11 +37,11 @@ clickhouse-logs:
 # Database migration commands
 migrate-up:
 	@echo ">> Running ClickHouse Migration Up"
-	@clickhouse-client --host localhost --port 9000 --multiquery < db/migrations/000001_init_vote_results.up.sql
+	@migrate -path db/migrations -database "clickhouse://localhost:19000?username=default&password=changeme&database=result" up
 
 migrate-down:
 	@echo ">> Running ClickHouse Migration Down"
-	@clickhouse-client --host localhost --port 9000 --multiquery < db/migrations/000001_init_vote_results.down.sql
+	@migrate -path db/migrations -database "clickhouse://localhost:19000?username=default&password=changeme&database=result" down
 
 # Create database
 create-db:

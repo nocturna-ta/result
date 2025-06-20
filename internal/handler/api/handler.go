@@ -11,8 +11,7 @@ import (
 
 type Options struct {
 	Cfg          config.MainConfig
-	VoteResult   usecases.VoteResultUseCases
-	LiveResult   usecases.LiveResultUsecases
+	LiveResultUc usecases.LiveResultUseCases
 	WebsocketHub *websocket.Hub
 }
 
@@ -33,8 +32,7 @@ func New(opts *Options) *Handler {
 		WriteTimeout:   opts.Cfg.Server.WriteTimeout,
 		RequestTimeout: opts.Cfg.API.APITimeout,
 		EnableSwagger:  opts.Cfg.API.EnableSwagger,
-		VoteResult:     opts.VoteResult,
-		LiveResult:     opts.LiveResult,
+		LiveResultUc:   opts.LiveResultUc,
 		WebSocketHub:   opts.WebsocketHub,
 	}).RegisterRoute()
 	return handler

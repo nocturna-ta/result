@@ -44,7 +44,7 @@ func (m *Module) ConsumeVoteProcessed(ctx context.Context, message *event.EventC
 		}).DebugWithCtx(ctx, "[ConsumerUseCases.ConsumeVoteProcessed] Failed to get existing vote result")
 	}
 
-	var electionPairID, region string
+	var electionPairID string
 
 	if existingResult != nil {
 		existingResult.Status = voteMessage.Status
@@ -53,7 +53,6 @@ func (m *Module) ConsumeVoteProcessed(ctx context.Context, message *event.EventC
 		existingResult.ProcessedAt = &voteMessage.ProcessedAt
 
 		electionPairID = existingResult.ElectionPairID
-		region = existingResult.Region
 
 		err = m.resultRepo.UpdateVoteResult(ctx, existingResult)
 		if err != nil {
@@ -72,7 +71,6 @@ func (m *Module) ConsumeVoteProcessed(ctx context.Context, message *event.EventC
 	} else {
 		result := model.FromVoteProcessedMessage(&voteMessage)
 		electionPairID = result.ElectionPairID
-		region = result.Region
 
 		err = m.resultRepo.InsertVoteResult(ctx, result)
 		if err != nil {
@@ -91,7 +89,7 @@ func (m *Module) ConsumeVoteProcessed(ctx context.Context, message *event.EventC
 		}).InfoWithCtx(ctx, "[ConsumerUseCases.ConsumeVoteProcessed] Inserted new vote result")
 	}
 
-	m.broadcastLiveUpdates(ctx, voteMessage.VoteID, electionPairID, region)
+	m.broadcastLiveUpdates(ctx, voteMessage.VoteID, electionPairID)
 
 	return nil
 }
@@ -130,13 +128,13 @@ func (m *Module) ConsumeVoteSubmit(ctx context.Context, message *event.EventCons
 		operation = constants.Create
 	}
 
-	var electionPairID, region string
+	var electionPairID, _ string
 
 	switch operation {
 	case constants.Create:
-		electionPairID, region = m.handleVoteCreate(ctx, &voteMessage, requestId)
+		electionPairID, _ = m.handleVoteCreate(ctx, &voteMessage, requestId)
 	case constants.Update:
-		electionPairID, region = m.handleVoteUpdate(ctx, &voteMessage, requestId)
+		electionPairID, _ = m.handleVoteUpdate(ctx, &voteMessage, requestId)
 	default:
 		log.WithFields(log.Fields{
 			"request_id": requestId,
@@ -147,7 +145,7 @@ func (m *Module) ConsumeVoteSubmit(ctx context.Context, message *event.EventCons
 		return nil
 	}
 
-	m.broadcastLiveUpdates(ctx, voteMessage.VoteID, electionPairID, region)
+	m.broadcastLiveUpdates(ctx, voteMessage.VoteID, electionPairID)
 
 	return nil
 }
@@ -222,23 +220,22 @@ func (m *Module) handleVoteUpdate(ctx context.Context, voteMessage *event2.VoteS
 	return voteMessage.ElectionPairID, voteMessage.Region
 }
 
-func (m *Module) broadcastLiveUpdates(ctx context.Context, voteID, electionPairID, region string) {
-	if m.liveResult == nil || m.liveResult.GetConnectedClients(ctx) == 0 {
+func (m *Module) broadcastLiveUpdates(ctx context.Context, voteID, electionPairID string) {
+	if m.liveResultUc == nil || m.liveResultUc.GetConnectedClientsCount(ctx) == 0 {
 		return
 	}
 
-	if err := m.liveResult.BroadcastVoteUpdate(ctx, voteID); err != nil {
+	if err := m.liveResultUc.BroadcastVoteUpdate(ctx, voteID); err != nil {
 		log.WithFields(log.Fields{
 			"error":   err,
 			"vote_id": voteID,
 		}).ErrorWithCtx(ctx, "[ConsumerUseCases] Failed to broadcast vote update")
 	}
 
-	if err := m.liveResult.BroadcastAllUpdates(ctx, electionPairID, region); err != nil {
+	if err := m.liveResultUc.BroadcastBulkUpdate(ctx, electionPairID); err != nil {
 		log.WithFields(log.Fields{
 			"error":            err,
 			"election_pair_id": electionPairID,
-			"region":           region,
 		}).ErrorWithCtx(ctx, "[ConsumerUseCases] Failed to broadcast aggregated updates")
 	}
 }

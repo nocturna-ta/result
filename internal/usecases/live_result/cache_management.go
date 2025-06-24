@@ -260,7 +260,7 @@ func (m *Module) StartCacheWarming(ctx context.Context, activeElections []string
 				log.InfoWithCtx(warmCtx, "[FastLiveResultUseCase] Cache warming stopped")
 				return
 			case <-ticker.C:
-				m.warmElectionCaches(warmCtx, activeElections)
+				//m.warmElectionCaches(warmCtx, activeElections)
 			}
 		}
 	}()

@@ -46,24 +46,17 @@ func newContainer(opts *options) *container {
 		WsHub:          wsHub,
 	})
 
-	fastLiveResultUc := live_result.New(&live_result.Options{
-		VoteResultRepo: voteResultRepo,
-		LiveResultRepo: liveResultRepo,
-		WsHub:          wsHub,
-		RedisCache:     opts.Cache,
-	})
-
 	go wsHub.Run()
 
 	go liveResultUc.StartIncrementalBroadcast(opts.Ctx, 30*time.Second)
 
-	activeElections := []string{
-		"a1234567-bb0b-4103-84f5-edd74e6e1234", "b2345678-bb0b-4103-84f5-edd74e6e2345", "c976902f-bb0b-4103-84f5-edd74e6e928f",
-	}
+	//activeElections := []string{
+	//	"a1234567-bb0b-4103-84f5-edd74e6e1234", "b2345678-bb0b-4103-84f5-edd74e6e2345", "c976902f-bb0b-4103-84f5-edd74e6e928f",
+	//}
 
-	fastLiveResultUc.StartCacheWarming(opts.Ctx, activeElections)
+	//fastLiveResultUc.StartCacheWarming(opts.Ctx, activeElections)
 
-	fastLiveResultUc.StartIncrementalBroadcast(opts.Ctx, 5*time.Second)
+	//fastLiveResultUc.StartIncrementalBroadcast(opts.Ctx, 5*time.Second)
 
 	return &container{
 		Cfg:          *opts.Cfg,

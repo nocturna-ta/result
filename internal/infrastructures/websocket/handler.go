@@ -1,4 +1,3 @@
-// internal/infrastructures/websocket/handler.go
 package websocket
 
 import (
@@ -72,27 +71,6 @@ func (h *Handler) readPump(client *Client) {
 		}).Debug("[WebSocketHandler] Pong received, deadline reset")
 		return nil
 	})
-
-	client.Conn.SetPingHandler(func(message string) error {
-		client.UpdateLastSeen()
-		client.Conn.SetReadDeadline(time.Now().Add(60 * time.Second))
-
-		// Send pong response
-		client.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
-		err := client.Conn.WriteMessage(websocket.PongMessage, []byte(message))
-		if err != nil {
-			log.WithFields(log.Fields{
-				"client_id": client.ID,
-				"error":     err,
-			}).Error("[WebSocketHandler] Failed to send pong")
-		} else {
-			log.WithFields(log.Fields{
-				"client_id": client.ID,
-			}).Debug("[WebSocketHandler] Ping received, pong sent")
-		}
-		return err
-	})
-
 	for {
 		messageType, message, err := client.Conn.ReadMessage()
 		if err != nil {
@@ -122,7 +100,6 @@ func (h *Handler) readPump(client *Client) {
 		if messageType == websocket.TextMessage {
 			h.handleTextMessage(client, message)
 		} else if messageType == websocket.BinaryMessage {
-			// Handle binary messages if needed
 			log.WithFields(log.Fields{
 				"client_id": client.ID,
 			}).Debug("[WebSocketHandler] Binary message received")

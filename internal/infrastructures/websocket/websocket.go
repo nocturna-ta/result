@@ -63,6 +63,7 @@ type Client struct {
 	Subscriptions map[SubscriptionType]*MessageFilter
 	LastSeen      time.Time
 	mu            sync.RWMutex
+	closed        bool
 }
 
 type Hub struct {
@@ -94,6 +95,7 @@ func NewClient(id string, conn *websocket.Conn) *Client {
 		Send:          make(chan []byte, 256),
 		Subscriptions: make(map[SubscriptionType]*MessageFilter),
 		LastSeen:      time.Now(),
+		closed:        false,
 	}
 }
 
@@ -105,14 +107,18 @@ func (c *Client) UpdateLastSeen() {
 
 func (c *Client) AddSubscription(subType SubscriptionType, filter *MessageFilter) {
 	c.mu.Lock()
-	c.Subscriptions[subType] = filter
-	c.mu.Unlock()
+	defer c.mu.Unlock()
+	if !c.closed {
+		c.Subscriptions[subType] = filter
+	}
 }
 
 func (c *Client) RemoveSubscription(subType SubscriptionType) {
 	c.mu.Lock()
-	delete(c.Subscriptions, subType)
-	c.mu.Unlock()
+	defer c.mu.Unlock()
+	if !c.closed {
+		delete(c.Subscriptions, subType)
+	}
 }
 
 func (c *Client) GetSubscriptions() map[SubscriptionType]*MessageFilter {
@@ -124,6 +130,21 @@ func (c *Client) GetSubscriptions() map[SubscriptionType]*MessageFilter {
 		subs[k] = v
 	}
 	return subs
+}
+
+func (c *Client) Close() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.closed {
+		c.closed = true
+		close(c.Send)
+	}
+}
+
+func (c *Client) IsClosed() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.closed
 }
 
 func (h *Hub) Run() {
@@ -158,7 +179,7 @@ func (h *Hub) Run() {
 			h.mu.Lock()
 			if _, ok := h.clients[client.ID]; ok {
 				delete(h.clients, client.ID)
-				close(client.Send)
+				client.Close()
 			}
 			h.mu.Unlock()
 
@@ -169,18 +190,29 @@ func (h *Hub) Run() {
 
 		case msg := <-h.broadcast:
 			h.mu.RLock()
+
+			var clientsToRemove []*Client
+
 			for _, client := range h.clients {
+				if client.IsClosed() {
+					clientsToRemove = append(clientsToRemove, client)
+					continue
+				}
+
 				if h.shouldSendToClient(client, msg) {
-					select {
-					case client.Send <- h.messageToBytes(msg):
-					default:
-						h.mu.RUnlock()
-						h.unregister <- client
-						h.mu.RLock()
+					if !h.sendToClientSafe(client, msg) {
+						clientsToRemove = append(clientsToRemove, client)
 					}
 				}
 			}
 			h.mu.RUnlock()
+
+			for _, client := range clientsToRemove {
+				select {
+				case h.unregister <- client:
+				default:
+				}
+			}
 		case <-ticker.C:
 			h.sendHeartbeat()
 			h.cleanupStaleConnections()
@@ -208,12 +240,22 @@ func (h *Hub) shouldSendToClient(client *Client, message *LiveMessage) bool {
 	return false
 }
 
-func (h *Hub) sendToClient(client *Client, message *LiveMessage) {
-	select {
-	case client.Send <- h.messageToBytes(message):
-	default:
-		h.unregister <- client
+func (h *Hub) sendToClientSafe(client *Client, message *LiveMessage) bool {
+	if client.IsClosed() {
+		return false
 	}
+
+	messageBytes := h.messageToBytes(message)
+	select {
+	case client.Send <- messageBytes:
+		return true
+	default:
+		return false
+	}
+}
+
+func (h *Hub) sendToClient(client *Client, message *LiveMessage) {
+	h.sendToClientSafe(client, message)
 }
 
 func (h *Hub) messageToBytes(message *LiveMessage) []byte {
@@ -233,7 +275,9 @@ func (h *Hub) sendHeartbeat() {
 
 	h.mu.RLock()
 	for _, client := range h.clients {
-		h.sendToClient(client, heartbeat)
+		if client.IsClosed() {
+			h.sendToClient(client, heartbeat)
+		}
 	}
 	h.mu.RUnlock()
 }
@@ -245,14 +289,22 @@ func (h *Hub) cleanupStaleConnections() {
 	h.mu.RLock()
 	var staleClients []*Client
 	for _, client := range h.clients {
-		if now.Sub(client.LastSeen) > staleThreshold {
+		client.mu.RLock()
+		isStale := now.Sub(client.LastSeen) > staleThreshold || client.closed
+		client.mu.RUnlock()
+
+		if isStale {
 			staleClients = append(staleClients, client)
 		}
 	}
 	h.mu.RUnlock()
 
 	for _, client := range staleClients {
-		h.unregister <- client
+		select {
+		case h.unregister <- client:
+		default:
+
+		}
 	}
 }
 

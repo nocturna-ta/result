@@ -9,8 +9,8 @@ API:
   EnableSwagger: true
 
 Database:
-  SlaveDSN: "clickhouse://default:changeme@localhost:19000/result"
-  MasterDSN: "clickhouse://default:changeme@localhost:19000/result"
+  SlaveDSN: "clickhouse://default:changeme@clickhouse:9000/default"
+  MasterDSN: "clickhouse://default:changeme@clickhouse:9000/default"
   RetryInterval: 10
   MaxIdleConn: 10
   MaxConn: 10
@@ -18,8 +18,7 @@ Database:
 
 Kafka:
   Consumer:
-    Brokers:
-      - localhost:9092
+    Brokers: ["kafka:9092"]
     ClusterVersion: "3.2.0"
     ConsumerGroup: "result-service"
     MaxRetries: 3
@@ -51,5 +50,5 @@ GrpcServer:
   Port: 35001
 
 RedisConfig:
-  Connection: "redis://:@localhost:6379"
+  Connection: "redis://:@redis2:6379"
 

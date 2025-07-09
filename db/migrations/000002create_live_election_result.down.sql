@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS live_election_result;

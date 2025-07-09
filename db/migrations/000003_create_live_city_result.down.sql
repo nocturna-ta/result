@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS live_city_result;

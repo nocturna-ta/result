@@ -43,7 +43,7 @@ func (l *LiveResultRepository) GetLiveElectionResults(ctx context.Context, elect
 	)
 
 	sqlTrx := utils.GetSqlTx(ctx)
-	selectQuery := "election_pair_id, region, confirmed_votes, total_votes, success_percentage, last_updated"
+	selectQuery := "election_pair_id, region, confirmed_votes, total_votes, success_percentage, vote_share_in_region, regional_distribution_percentage, last_updated"
 	whereQuery := " AND election_pair_id = ? ORDER BY confirmed_votes DESC"
 
 	args = append(args, electionPairID)
@@ -112,7 +112,7 @@ func (l *LiveResultRepository) GetElectionSummary(ctx context.Context, electionP
 
 	sqlTrx := utils.GetSqlTx(ctx)
 
-	selectQuery := "election_pair_id, total_unique_voters, total_regions, total_confirmed_votes, overall_success_rate, last_updated"
+	selectQuery := "election_pair_id, total_unique_voters, total_regions, total_confirmed_votes, overall_success_rate, total_vote_attempts, overall_vote_share_percentage, last_updated"
 	whereQuery := " AND election_pair_id = ?"
 
 	args = append(args, electionPairID)
@@ -150,7 +150,7 @@ func (l *LiveResultRepository) GetCityRankings(ctx context.Context, electionPair
 	)
 
 	sqlTrx := utils.GetSqlTx(ctx)
-	selectQuery := "election_pair_id, city_name, confirmed_votes, unique_voters, participation_rate, city_rank, last_updated"
+	selectQuery := "election_pair_id, city_name, confirmed_votes, unique_voters, participation_rate, city_rank,vote_distribution_percentage, last_updated"
 	whereQuery := " AND election_pair_id = ? ORDER BY city_rank ASC LIMIT ?"
 
 	args = append(args, electionPairID, limit)
@@ -183,7 +183,7 @@ func (l *LiveResultRepository) GetAllElectionsSummary(ctx context.Context) ([]*m
 	)
 
 	sqlTrx := utils.GetSqlTx(ctx)
-	selectQuery := "election_pair_id, total_unique_voters, total_regions, total_confirmed_votes, overall_success_rate, last_updated"
+	selectQuery := "election_pair_id, total_unique_voters, total_regions, total_confirmed_votes, overall_success_rate,total_vote_attempts, overall_vote_share_percentage, last_updated"
 	whereQuery := " ORDER BY total_confirmed_votes DESC"
 
 	query := fmt.Sprintf(selectElectionSummary, selectQuery, "", whereQuery)

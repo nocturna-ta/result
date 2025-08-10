@@ -163,12 +163,14 @@ func (m *Module) GetElectionSummaryWithCache(ctx context.Context, electionPairID
 	}
 
 	response2 := &response.ElectionSummaryResponse{
-		ElectionID:          summary.ElectionPairID,
-		TotalUniqueVoters:   summary.TotalUniqueVoters,
-		TotalRegions:        summary.TotalRegions,
-		TotalConfirmedVotes: summary.TotalConfirmedVotes,
-		OverallSuccessRate:  summary.OverallSuccessRate,
-		LastUpdated:         summary.LastUpdated,
+		ElectionID:                 summary.ElectionPairID,
+		TotalUniqueVoters:          summary.TotalUniqueVoters,
+		TotalRegions:               summary.TotalRegions,
+		TotalConfirmedVotes:        summary.TotalConfirmedVotes,
+		TotalVoteAttempts:          summary.TotalVoteAttempts,
+		OverallSuccessRate:         summary.OverallSuccessRate,
+		OverallVoteSharePercentage: summary.OverallVoteSharePercentage,
+		LastUpdated:                summary.LastUpdated,
 	}
 
 	m.wsHub.BroadcastElectionSummary(response2)
@@ -254,12 +256,14 @@ func (m *Module) GetAllElectionsSummaryWithCache(ctx context.Context) (*response
 
 	for _, summary := range summaries {
 		response2.Elections = append(response2.Elections, response.ElectionSummaryResponse{
-			ElectionID:          summary.ElectionPairID,
-			TotalUniqueVoters:   summary.TotalUniqueVoters,
-			TotalRegions:        summary.TotalRegions,
-			TotalConfirmedVotes: summary.TotalConfirmedVotes,
-			OverallSuccessRate:  summary.OverallSuccessRate,
-			LastUpdated:         summary.LastUpdated,
+			ElectionID:                 summary.ElectionPairID,
+			TotalUniqueVoters:          summary.TotalUniqueVoters,
+			TotalRegions:               summary.TotalRegions,
+			TotalConfirmedVotes:        summary.TotalConfirmedVotes,
+			TotalVoteAttempts:          summary.TotalVoteAttempts,
+			OverallSuccessRate:         summary.OverallSuccessRate,
+			OverallVoteSharePercentage: summary.OverallVoteSharePercentage,
+			LastUpdated:                summary.LastUpdated,
 		})
 	}
 
